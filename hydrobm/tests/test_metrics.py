@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from ..metrics import kge, nse, rmse
 
@@ -20,7 +21,7 @@ def test_kge():
     sim = obs
     assert np.allclose(kge(obs, sim), 1)
 
-    # Test with seam equal to mean(obs): no skill
+    # Test with sim equal to mean(obs): no skill
     sim = np.ones(np.shape(obs)) * np.mean(obs)
     assert np.allclose(kge(obs, sim), 1 - np.sqrt(2))
 
@@ -34,3 +35,7 @@ def test_rmse():
     # Test with sim equal to mean(obs): no skill
     sim = np.ones(np.shape(obs)) * np.mean(obs)
     assert np.allclose(rmse(obs, sim), np.std(obs))
+
+
+if __name__ == "__main__":
+    pytest.main([__file__])
