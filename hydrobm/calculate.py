@@ -1,6 +1,7 @@
 import pandas as pd
 import xarray as xr
 from benchmarks import create_bm, evaluate_bm
+from utils import rain_to_melt
 
 
 # Main function to calculate metric scores for a given set of benchmark models
@@ -8,13 +9,14 @@ def calc_bm(
     data,
     cal_mask,
     val_mask,
-    precipitation="P",
-    streamflow="Q",
+    precipitation="precipitation",
+    streamflow="streamflow",
     benchmarks=["daily_mean_flow"],
     metrics=["rmse"],
     calc_snowmelt=False,
-    temperature="T",
+    temperature="temperature",
     snowmelt_threshold=0.0,
+    snowmelt_rate=3.0,
 ):
     """Calculate benchmark model scores for a given set of benchmark models and metrics.
 
@@ -74,16 +76,25 @@ def calc_bm(
     if not val_mask.isin(data.index).all():
         raise ValueError("Validation mask falls outside the data index")
 
-    # 4. < TO DO > Input check: benchmark models are available in the hydroBM library
-    # 5. < TO DO > Input check: metrics are available in the hydroBM library
+    # < TO DO > Input check: metrics are available in the hydroBM library
 
     # < TO DO > Add a basic snow-melt model if flagged by user
-    # This will take precipitation, temperature and optionally a threshold temperature as input
-    # The output will be a time series of rain+melt
+    # This will take precipitation, temperature and optionally a threshold temperature
+    # and melt rate as input. The output will be a time series of rain+melt.
     if calc_snowmelt:
         # Input check: temperature column is present in input data
         if temperature not in data.columns:
             raise ValueError(f"Temperature column {temperature} not found in the input data")
+        # Calculate snowmelt
+        data = rain_to_melt(
+            data,
+            precipitation="precipitation",
+            temperature="temperature",
+            snow_and_melt_temp=snowmelt_threshold,
+            snow_and_melt_rate=snowmelt_rate,
+        )
+        # Update the precipitation variable to instead use rain_plus_melt
+        precipitation = "rain_plus_melt"
 
     # First create the benchmark flows as a one-off
     benchmark_flow_list = (

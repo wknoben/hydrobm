@@ -174,5 +174,182 @@ def test_rainfall_runoff_ratio_to_annual():
     ).all(), "Failed rainfall-runoff ratio to annual T3d."
 
 
+def test_rainfall_runoff_ratio_to_monthly():
+    # Test 1: 1 year of data should result in 12 unique values but the same values in each month
+    data = create_sines(period=1)
+    cal_mask = data.index
+    bm_v, bm_t = create_bm(data, "rainfall_runoff_ratio_to_monthly", cal_mask)
+    assert np.isclose(bm_v, 0.5), "Failed rainfall-runoff ratio to monthly T1a."
+    assert (
+        len(bm_t["bm_rainfall_runoff_ratio_to_monthly"].unique()) == 12
+    ), "Failed rainfall-runoff ratio to monthly T1b."
+    assert all(
+        bm_t["bm_rainfall_runoff_ratio_to_monthly"].groupby(bm_t.index.month).nunique() == 1
+    ), "Failed rainfall-runoff ratio to monthly T1c."
+
+    # Test 2: increase precipitation for years 2 and 3, should result in 36 unique values
+    data = create_sines(period=3)
+    cal_mask = data.index.year == 2001
+    data["precipitation"].loc[data.index.year == 2002] = data["precipitation"].loc[data.index.year == 2002] * 2
+    data["precipitation"].loc[data.index.year == 2003] = data["precipitation"].loc[data.index.year == 2003] * 3
+    bm_v, bm_t = create_bm(data, "rainfall_runoff_ratio_to_monthly", cal_mask)
+    assert (
+        len(bm_t["bm_rainfall_runoff_ratio_to_monthly"].unique()) == 36
+    ), "Failed rainfall-runoff ratio to monthly T2a."
+    assert all(
+        bm_t["bm_rainfall_runoff_ratio_to_monthly"].groupby(bm_t.index.month).nunique() == 3
+    ), "Failed rainfall-runoff ratio to monthly T2b."
+
+
+def test_rainfall_runoff_ratio_to_daily():
+    # Test 1: 1 year of data should result in 365 unique values but the same values in each day
+    data = create_sines(period=1)
+    cal_mask = data.index
+    bm_v, bm_t = create_bm(data, "rainfall_runoff_ratio_to_daily", cal_mask)
+    assert np.isclose(bm_v, 0.5), "Failed rainfall-runoff ratio to daily T1a."
+    assert (
+        len(bm_t["bm_rainfall_runoff_ratio_to_daily"].unique()) == 365
+    ), "Failed rainfall-runoff ratio to daily T1b."
+    assert all(
+        bm_t["bm_rainfall_runoff_ratio_to_daily"].groupby(bm_t.index.dayofyear).nunique() == 1
+    ), "Failed rainfall-runoff ratio to daily T1c."
+
+    # Test 2: increase precipitation for years 2 and 3, should result in 1095 unique values
+    data = create_sines(period=3)
+    cal_mask = data.index.year == 2001
+    data["precipitation"].loc[data.index.year == 2002] = data["precipitation"].loc[data.index.year == 2002] * 2
+    data["precipitation"].loc[data.index.year == 2003] = data["precipitation"].loc[data.index.year == 2003] * 3
+    bm_v, bm_t = create_bm(data, "rainfall_runoff_ratio_to_daily", cal_mask)
+    assert (
+        len(bm_t["bm_rainfall_runoff_ratio_to_daily"].unique()) == 1095
+    ), "Failed rainfall-runoff ratio to daily T2a."
+    assert all(
+        bm_t["bm_rainfall_runoff_ratio_to_daily"].groupby(bm_t.index.dayofyear).nunique() == 3
+    ), "Failed rainfall-runoff ratio to daily T2b."
+
+
+def test_rainfall_runoff_ratio_to_timestep():
+    # Test 1: 1 year of data should have an overall ratio of 0.5,
+    # as well as a per-day ratio of 0.5
+    data = create_sines(period=1)
+    cal_mask = data.index
+    bm_v, bm_t = create_bm(data, "rainfall_runoff_ratio_to_timestep", cal_mask)
+    assert np.isclose(bm_v, 0.5), "Failed rainfall-runoff ratio to timestep T1a."
+    assert np.isclose(
+        (bm_t["bm_rainfall_runoff_ratio_to_timestep"] / data["precipitation"]).values, 0.5
+    ).all(), "Failed rainfall-runoff ratio to timestep T1b."
+
+
+def test_monthly_rainfall_runoff_ratio_to_monthly():
+    # Test 1: 1 year of data should have 12 benchmark values in bm_v,
+    # and at most 12 unique values in bm_t, as well as 1 unique value per month
+    data = create_sines(period=1)
+    cal_mask = data.index
+    bm_v, bm_t = create_bm(data, "monthly_rainfall_runoff_ratio_to_monthly", cal_mask)
+    assert len(bm_v) == 12, "Failed monthly rainfall-runoff ratio to monthly T1a."
+    assert (
+        len(bm_t["bm_monthly_rainfall_runoff_ratio_to_monthly"].unique()) <= 12
+    ), "Failed monthly rainfall-runoff ratio to monthly T1b."
+    assert all(
+        bm_t.groupby(bm_t.index.month).nunique() == 1
+    ), "Failed monthly rainfall-runoff ratio to monthly T1c."
+
+    # Test 2: increase precipitation for years 2 and 3, should result in at most 36 unique values,
+    # as well as 3 unique values per month (one for each year)
+    data = create_sines(period=3)
+    cal_mask = data.index.year == 2001
+    data["precipitation"].loc[data.index.year == 2002] = data["precipitation"].loc[data.index.year == 2002] * 2
+    data["precipitation"].loc[data.index.year == 2003] = data["precipitation"].loc[data.index.year == 2003] * 3
+    bm_v, bm_t = create_bm(data, "monthly_rainfall_runoff_ratio_to_monthly", cal_mask)
+    assert len(bm_v) == 12, "Failed monthly rainfall-runoff ratio to monthly T2a."
+    assert (
+        len(bm_t["bm_monthly_rainfall_runoff_ratio_to_monthly"].unique()) <= 36
+    ), "Failed monthly rainfall-runoff ratio to monthly T2b."
+    assert all(
+        bm_t.groupby(bm_t.index.month).nunique() == 3
+    ), "Failed monthly rainfall-runoff ratio to monthly T2c."
+
+
+def test_monthly_rainfall_runoff_ratio_to_daily():
+    # Test 1: 1 year of data should have 12 benchmark values in bm_v,
+    # and at most 365 unique values in bm_t, as well as 1 unique value per day
+    data = create_sines(period=1)
+    cal_mask = data.index
+    bm_v, bm_t = create_bm(data, "monthly_rainfall_runoff_ratio_to_daily", cal_mask)
+    assert len(bm_v) == 12, "Failed monthly rainfall-runoff ratio to daily T1a."
+    assert (
+        len(bm_t["bm_monthly_rainfall_runoff_ratio_to_daily"].unique()) <= 365
+    ), "Failed monthly rainfall-runoff ratio to daily T1b."
+    assert all(
+        bm_t.groupby(bm_t.index.dayofyear).nunique() == 1
+    ), "Failed monthly rainfall-runoff ratio to daily T1c."
+
+    # Test 2: increase precipitation for years 2 and 3, should result in at most 36 unique values,
+    # as well as 3 unique values per month (one for each year)
+    data = create_sines(period=3)
+    cal_mask = data.index.year == 2001
+    data["precipitation"].loc[data.index.year == 2002] = data["precipitation"].loc[data.index.year == 2002] * 2
+    data["precipitation"].loc[data.index.year == 2003] = data["precipitation"].loc[data.index.year == 2003] * 3
+    bm_v, bm_t = create_bm(data, "monthly_rainfall_runoff_ratio_to_daily", cal_mask)
+    assert len(bm_v) == 12, "Failed monthly rainfall-runoff ratio to daily T2a."
+    assert (
+        len(bm_t["bm_monthly_rainfall_runoff_ratio_to_daily"].unique()) <= 365 * 3
+    ), "Failed monthly rainfall-runoff ratio to daily T2b."
+    assert all(
+        bm_t.groupby(bm_t.index.dayofyear).nunique() == 3
+    ), "Failed monthly rainfall-runoff ratio to daily T2c."
+
+
+def test_monthly_rainfall_runoff_ratio_to_timestep():
+    # Test 1: 1 year of data should have 12 benchmark values in bm_v, and 24 unique values on most days
+    # We will get fewer than 24 unique values after 3 and 9 months
+    # < TO DO > write a test that doesn't use sine curves so we avoid the "values are too close to equal" issue
+    data = create_sines(period=1, mean_p=10, var_p=10)
+    cal_mask = data.index
+    bm_v, bm_t = create_bm(data, "monthly_rainfall_runoff_ratio_to_timestep", cal_mask)
+    assert len(bm_v) == 12, "Failed monthly rainfall-runoff ratio to timestep T1a."
+    assert (
+        bm_t["bm_monthly_rainfall_runoff_ratio_to_timestep"].groupby(bm_t.index.dayofyear).nunique() >= 12
+    ).all(), "Failed monthly rainfall-runoff ratio to timestep T1b."
+    assert (
+        int(bm_t["bm_monthly_rainfall_runoff_ratio_to_timestep"].groupby(bm_t.index.dayofyear).nunique().median())
+        == 24
+    ), "Failed monthly rainfall-runoff ratio to timestep T1c."
+
+
+def test_scaled_precipitation_benchmark():
+    # Test 1: 1 year of data should have an overall ratio of 0.5,
+    # as well as a per-day ratio of 0.5
+    data = create_sines(period=1)
+    cal_mask = data.index
+    bm_v, bm_t = create_bm(data, "scaled_precipitation_benchmark", cal_mask)
+    assert np.isclose(bm_v, 0.5), "Failed scaled precipitation benchmark T1a."
+    assert np.isclose(
+        (bm_t["bm_scaled_precipitation_benchmark"] / data["precipitation"]).values, 0.5
+    ).all(), "Failed scaled precipitation benchmark T1b."
+
+
+def test_adjusted_precipitation_benchmark():
+    # Test 1: check if we find the known optimum lag
+    data = pd.DataFrame({"precipitation": [2, 0, 0, 0, 0], "streamflow": [0, 0, 1, 0, 0]})
+    expected_output = pd.DataFrame({"bm_adjusted_precipitation_benchmark": [pd.NA, pd.NA, 1, 0, 0]})
+    cal_mask = data.index
+    bm_v, bm_t = create_bm(data, "adjusted_precipitation_benchmark", cal_mask)
+    assert np.isclose(bm_v, 0.5), "Failed adjusted precipitation benchmark T1a."
+    pd.testing.assert_frame_equal(bm_t, expected_output, check_dtype=False)
+
+
+def test_adjusted_smoothed_precipitation_benchmark():
+    # Test 1: check if we find the known optimum lag
+    data = pd.DataFrame({"precipitation": [0, 0, 6, 0, 0, 0, 0], "streamflow": [0, 0, 0, 0, 1, 1, 1]})
+    expected_output = pd.DataFrame(
+        {"bm_adjusted_smoothed_precipitation_benchmark": [pd.NA, pd.NA, pd.NA, pd.NA, 1, 1, 1]}
+    )
+    cal_mask = data.index
+    bm_v, bm_t = create_bm(data, "adjusted_smoothed_precipitation_benchmark", cal_mask)
+    assert np.isclose(bm_v, 0.5), "Failed adjusted smoothed precipitation benchmark T1a."
+    pd.testing.assert_frame_equal(bm_t, expected_output, check_dtype=False)
+
+
 if __name__ == "__main__":
     pytest.main([__file__])

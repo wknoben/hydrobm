@@ -1,4 +1,11 @@
 import pandas as pd
+from scipy.optimize import minimize_scalar
+
+from .metrics import mse
+from .utils import optimize_aspb
+
+# from scipy.optimize import Bounds, minimize, minimize_scalar
+
 
 # --- benchmark definitions ---
 # --- Benchmarks relying on streamflow only ---
@@ -118,7 +125,7 @@ def bm_annual_median_flow(data, cal_mask, streamflow="streamflow"):
 
     Notes
     -----
-    This benchmark  cannot be used to predict unseen data, because the
+    This benchmark cannot be used to predict unseen data, because the
     years don't repeat.
     """
 
@@ -367,11 +374,359 @@ def bm_rainfall_runoff_ratio_to_monthly(data, cal_mask, precipitation="precipita
     return bm_vals, qbm
 
 
+def bm_rainfall_runoff_ratio_to_daily(data, cal_mask, precipitation="precipitation", streamflow="streamflow"):
+    """Calculate the long-term rainfall-runoff ratio over the calculation period and
+    use that as a predictor of runoff-from-precipitation for each day in the whole dataframe.
+
+    Parameters
+    ----------
+    data : pandas DataFrame
+        Input data containing precipitation and streamflow columns.
+    cal_mask : pandas Series
+        Boolean mask for the calculation period.
+    precipitation : str, optional
+        Name of the precipitation column in the input data. Default is ['precipitation'].
+    streamflow : str, optional
+        Name of the streamflow column in the input data. Default is ['streamflow'].
+
+    Returns
+    -------
+    bm_vals: pandas DataSeries
+        Daily rainfall-runoff ratio values for the calculation period.
+    qbm : pandas DataFrame
+        Benchmark flow time series for the daily rainfall-runoff ratio (RRR) benchmark model.
+        Computed as long-term RRR multiplied by daily mean precipitation.
+    """
+
+    cal_set = data.loc[cal_mask]
+    bm_vals = cal_set[streamflow].sum() / cal_set[precipitation].sum()  # single rainfall-runoff ratio
+    qbm = pd.DataFrame({"bm_rainfall_runoff_ratio_to_daily": pd.NA}, index=data.index)
+    for year in qbm.index.year.unique():  # for each year
+        for doy in qbm.loc[
+            qbm.index.year == year
+        ].index.dayofyear.unique():  # for each DoY in index for this year (takes care of mising days)
+            this_day = (data.index.year == year) & (data.index.dayofyear == doy)
+            mean_daily_precip = data[precipitation].loc[this_day].mean()
+            qbm.loc[this_day, "bm_rainfall_runoff_ratio_to_daily"] = bm_vals * mean_daily_precip
+
+    return bm_vals, qbm
+
+
+def bm_rainfall_runoff_ratio_to_timestep(data, cal_mask, precipitation="precipitation", streamflow="streamflow"):
+    """Calculate the long-term rainfall-runoff ratio over the calculation period and
+    use that as a predictor of runoff-from-precipitation for each timestep in the whole dataframe.
+
+    Parameters
+    ----------
+    data : pandas DataFrame
+        Input data containing precipitation and streamflow columns.
+    cal_mask : pandas Series
+        Boolean mask for the calculation period.
+    precipitation : str, optional
+        Name of the precipitation column in the input data. Default is ['precipitation'].
+    streamflow : str, optional
+        Name of the streamflow column in the input data. Default is ['streamflow'].
+
+    Returns
+    -------
+    bm_vals: float
+        Rainfall-runoff ratio value for the calculation period.
+    qbm : pandas DataFrame
+        Benchmark flow time series for the rainfall-runoff ratio (RRR) benchmark model.
+        Computed as long-term RRR multiplied by precipitation at each timestep.
+    """
+
+    cal_set = data.loc[cal_mask]
+    bm_vals = cal_set[streamflow].sum() / cal_set[precipitation].sum()  # single rainfall-runoff ratio
+    qbm = pd.DataFrame({"bm_rainfall_runoff_ratio_to_timestep": bm_vals * data[precipitation]}, index=data.index)
+    return bm_vals, qbm
+
+
+def monthly_rainfall_runoff_ratio_to_monthly(
+    data, cal_mask, precipitation="precipitation", streamflow="streamflow"
+):
+    """Calculate the mean monthly rainfall-runoff ratio over the calculation period and
+    use that as a predictor of runoff-from-precipitation for each month in the whole dataframe.
+
+    Parameters
+    ----------
+    data : pandas DataFrame
+        Input data containing precipitation and streamflow columns.
+    cal_mask : pandas Series
+        Boolean mask for the calculation period.
+    precipitation : str, optional
+        Name of the precipitation column in the input data. Default is ['precipitation'].
+    streamflow : str, optional
+        Name of the streamflow column in the input data. Default is ['streamflow'].
+
+    Returns
+    -------
+    bm_vals: pandas DataSeries
+        Monthly rainfall-runoff ratio values for the calculation period.
+    qbm : pandas DataFrame
+        Benchmark flow time series for the monthly rainfall-runoff ratio (RRR) benchmark model.
+        Computed as mean monthly RRR multiplied by monthly mean precipitation.
+    """
+
+    cal_set = data.loc[cal_mask]
+    monthly_mean_q = cal_set[streamflow].groupby(cal_set.index.month).mean()
+    monthly_mean_p = cal_set[precipitation].groupby(cal_set.index.month).mean()
+    bm_vals = monthly_mean_q / monthly_mean_p  # (at most) 12 rainfall-runoff ratios
+    qbm = pd.DataFrame({"bm_monthly_rainfall_runoff_ratio_to_monthly": pd.NA}, index=data.index)
+    for year in qbm.index.year.unique():  # for each year
+        for month in qbm.loc[
+            qbm.index.year == year
+        ].index.month.unique():  # for each month we have in the index for that year (takes care of mising months)
+            this_month = (data.index.year == year) & (data.index.month == month)
+            mean_monthly_precip = data[precipitation].loc[this_month].mean()
+            qbm.loc[this_month, "bm_monthly_rainfall_runoff_ratio_to_monthly"] = (
+                bm_vals.loc[month] * mean_monthly_precip
+            )
+    return bm_vals, qbm
+
+
+def monthly_rainfall_runoff_ratio_to_daily(data, cal_mask, precipitation="precipitation", streamflow="streamflow"):
+    """Calculate the mean monthly rainfall-runoff ratio over the calculation period and
+    use that as a predictor of runoff-from-precipitation for each day in the whole dataframe.
+
+    Parameters
+    ----------
+    data : pandas DataFrame
+        Input data containing precipitation and streamflow columns.
+    cal_mask : pandas Series
+        Boolean mask for the calculation period.
+    precipitation : str, optional
+        Name of the precipitation column in the input data. Default is ['precipitation'].
+    streamflow : str, optional
+        Name of the streamflow column in the input data. Default is ['streamflow'].
+
+    Returns
+    -------
+    bm_vals: pandas DataSeries
+        Monthly rainfall-runoff ratio values for the calculation period.
+    qbm : pandas DataFrame
+        Benchmark flow time series for the monthly rainfall-runoff ratio (RRR) benchmark model.
+        Computed as mean monthly RRR multiplied by daily mean precipitation.
+    """
+
+    cal_set = data.loc[cal_mask]
+    monthly_mean_q = cal_set[streamflow].groupby(cal_set.index.month).mean()
+    monthly_mean_p = cal_set[precipitation].groupby(cal_set.index.month).mean()
+    bm_vals = monthly_mean_q / monthly_mean_p  # (at most) 12 rainfall-runoff ratios
+    qbm = pd.DataFrame({"bm_monthly_rainfall_runoff_ratio_to_daily": pd.NA}, index=data.index)
+    for year in qbm.index.year.unique():  # for each year
+        for doy in qbm.loc[
+            qbm.index.year == year
+        ].index.dayofyear.unique():  # for each DoY in index for this year (takes care of mising days)
+            this_day = (data.index.year == year) & (data.index.dayofyear == doy)
+            mean_daily_precip = data[precipitation].loc[this_day].mean()
+            month = data[precipitation].loc[this_day].index.month[0]
+            qbm.loc[this_day, "bm_rainfall_runoff_ratio_to_daily"] = bm_vals.loc[month] * mean_daily_precip
+    return bm_vals, qbm
+
+
+def monthly_rainfall_runoff_ratio_to_timestep(
+    data, cal_mask, precipitation="precipitation", streamflow="streamflow"
+):
+    """Calculate the mean monthly rainfall-runoff ratio over the calculation period and
+    use that as a predictor of runoff-from-precipitation for each timestep in the whole dataframe.
+
+    Parameters
+    ----------
+    data : pandas DataFrame
+        Input data containing precipitation and streamflow columns.
+    cal_mask : pandas Series
+        Boolean mask for the calculation period.
+    precipitation : str, optional
+        Name of the precipitation column in the input data. Default is ['precipitation'].
+    streamflow : str, optional
+        Name of the streamflow column in the input data. Default is ['streamflow'].
+
+    Returns
+    -------
+    bm_vals: pandas DataSeries
+        Monthly rainfall-runoff ratio values for the calculation period.
+    qbm : pandas DataFrame
+        Benchmark flow time series for the monthly rainfall-runoff ratio (RRR) benchmark model.
+        Computed as mean monthly RRR multiplied by precipitation at each timestep.
+    """
+
+    cal_set = data.loc[cal_mask]
+    monthly_mean_q = cal_set[streamflow].groupby(cal_set.index.month).mean()
+    monthly_mean_p = cal_set[precipitation].groupby(cal_set.index.month).mean()
+    bm_vals = monthly_mean_q / monthly_mean_p  # (at most) 12 rainfall-runoff ratios
+    qbm = pd.DataFrame(
+        {
+            "bm_monthly_rainfall_runoff_ratio_to_timestep": bm_vals.loc[data.index.month].values
+            * data[precipitation].values
+        },
+        index=data.index,
+    )
+
+    return bm_vals, qbm
+
+
+def scaled_precipitation_benchmark(data, cal_mask, precipitation="precipitation", streamflow="streamflow"):
+    """Calculate the scaled precipitation benchmark model as a predictor
+    of runoff-from-precipitation for each timestep in the whole dataframe.
+
+    Parameters
+    ----------
+    data : pandas DataFrame
+        Input data containing precipitation and streamflow columns.
+    cal_mask : pandas Series
+        Boolean mask for the calculation period.
+    precipitation : str, optional
+        Name of the precipitation column in the input data. Default is ['precipitation'].
+    streamflow : str, optional
+        Name of the streamflow column in the input data. Default is ['streamflow'].
+
+    Returns
+    -------
+    bm_vals: float
+        Rainfall-runoff ratio value for the calculation period.
+    qbm : pandas DataFrame
+        Benchmark flow time series for the scaled precipitation benchmark model.
+        Computed as long-term RRR multiplied by precipitation at each timestep.
+
+    Notes
+    -----
+    This benchmark is effectively the same as the rainfall-runoff ratio to
+    timestep benchmark, though Schaefli & Gupta (2007) apply this with daily
+    data only.
+
+    References
+    ----------
+    Schaefli, B. and Gupta, H.V. (2007), Do Nash values have value?.
+    Hydrol. Process., 21: 2075-2080. https://doi.org/10.1002/hyp.6825
+    """
+
+    bm_vals, qbm = bm_rainfall_runoff_ratio_to_timestep(data, cal_mask, precipitation, streamflow)
+    qbm = qbm.rename(
+        columns={"bm_rainfall_runoff_ratio_to_timestep": "bm_scaled_precipitation_benchmark"}
+    )  # Rename column to match function name
+    return bm_vals, qbm
+
+
+def adjusted_precipitation_benchmark(data, cal_mask, precipitation="precipitation", streamflow="streamflow"):
+    """Calculate the adjusted precipitation benchmark model as a predictor
+    of runoff-from-precipitation for each timestep in the whole dataframe.
+
+    Parameters
+    ----------
+    data : pandas DataFrame
+        Input data containing precipitation and streamflow columns.
+    cal_mask : pandas Series
+        Boolean mask for the calculation period.
+    precipitation : str, optional
+        Name of the precipitation column in the input data. Default is ['precipitation'].
+    streamflow : str, optional
+        Name of the streamflow column in the input data. Default is ['streamflow'].
+
+    Returns
+    -------
+    bm_vals: float
+        Rainfall-runoff ratio value for the calculation period.
+    qbm : pandas DataFrame
+        Benchmark flow time series for the adjusted precipitation benchmark model.
+        Computed as long-term RRR multiplied by precipitation at each timestep,
+        lagged for a number of timesteps that minimizes MSE (Schaefli & Gupta, 2007).
+
+
+    References
+    ----------
+    Schaefli, B. and Gupta, H.V. (2007), Do Nash values have value?.
+    Hydrol. Process., 21: 2075-2080. https://doi.org/10.1002/hyp.6825
+    """
+
+    cal_set = data.loc[cal_mask]
+    bm_vals = cal_set[streamflow].sum() / cal_set[precipitation].sum()  # single rainfall-runoff ratio
+
+    # minimize MSE between observed and predicted streamflow
+    # < TO DO >: something cleverer than "round(lag)" to enforce integers,
+    # but for the moment this may be good enough
+    def apb(lag):
+        lag = round(lag)
+        apb = bm_vals * cal_set[precipitation].shift(lag)
+        return apb
+
+    def mse_apb(lag):
+        return mse(apb(lag), cal_set[streamflow])
+
+    res = minimize_scalar(mse_apb, bounds=(0, len(cal_set) - 1), method="bounded")
+    lag = round(res.x)  # optimal lag value, rounded to a whole timestep as in mse_lagged_precipitation
+    qbm = pd.DataFrame(
+        {"bm_adjusted_precipitation_benchmark": bm_vals * cal_set[precipitation].shift(lag)}, index=data.index
+    )
+    return bm_vals, qbm
+
+
+def adjusted_smoothed_precipitation_benchmark(
+    data, cal_mask, precipitation="precipitation", streamflow="streamflow"
+):
+    """Calculate the adjusted smoothed precipitation benchmark model as a predictor
+    of runoff-from-precipitation for each timestep in the whole dataframe.
+
+    Parameters
+    ----------
+    data : pandas DataFrame
+        Input data containing precipitation and streamflow columns.
+    cal_mask : pandas Series
+        Boolean mask for the calculation period.
+    precipitation : str, optional
+        Name of the precipitation column in the input data. Default is ['precipitation'].
+    streamflow : str, optional
+        Name of the streamflow column in the input data. Default is ['streamflow'].
+
+    Returns
+    -------
+    bm_vals: float
+        Rainfall-runoff ratio value for the calculation period.
+    qbm : pandas DataFrame
+        Benchmark flow time series for the adjusted smoothed precipitation benchmark model.
+        Computed as long-term RRR multiplied by precipitation at each timestep,
+        lagged for a number of timesteps and smoothed with a moving average filter (Schaefli & Gupta, 2007).
+
+    References
+    ----------
+    Schaefli, B. and Gupta, H.V. (2007), Do Nash values have value?.
+    Hydrol. Process., 21: 2075-2080. https://doi.org/10.1002/hyp.6825
+    """
+
+    cal_set = data.loc[cal_mask]
+    bm_vals = cal_set[streamflow].sum() / cal_set[precipitation].sum()  # single rainfall-runoff ratio
+    # minimize MSE between observed and predicted streamflow
+
+    # # < TO DO >: figure out if we can make scipy minimize with integers only
+    # #             because our current approach is a bit slow.
+    def aspb(lag, window):
+        lag = round(lag)
+        window = round(window)
+        aspb = (
+            bm_vals * cal_set[precipitation].shift(lag).rolling(window=window).mean()
+        )  # This defaults to a left window
+        return aspb
+
+    # def mse_aspb(params):
+    #     lag, window = params
+    #     return mse(aspb(lag, window), cal_set[streamflow])
+
+    # # We need Nelder-Mead (or similar) here because the gradients are messed up due
+    # # to the round-to-integer we do. Not theoretically optimal but seems fast enough.
+    # res = minimize(mse_aspb, [0, 1], bounds=[(0,None),(1,None)], method='Powell')
+    # lag,window = res.x.round()
+
+    lag, window, _ = optimize_aspb(bm_vals * cal_set[precipitation], cal_set[streamflow])
+    qbm = pd.DataFrame({"bm_adjusted_smoothed_precipitation_benchmark": aspb(lag, window)}, index=data.index)
+    return bm_vals, qbm
+
+
 # --- Benchmark creation and evaluation ---
 
 
 def create_bm(data, benchmark, cal_mask, precipitation="precipitation", streamflow="streamflow"):
-    """Helper function to call the correct benchmark model function
+    """Helper function to call the correct benchmark model function;
+    makes looping over benchmark models easier.
 
     Parameters
     ----------
@@ -396,6 +751,7 @@ def create_bm(data, benchmark, cal_mask, precipitation="precipitation", streamfl
 
     # < TO DO >: Update/complete the list
     bm_list = [
+        # Streamflow benchmarks
         "mean_flow",
         "median_flow",
         "annual_mean_flow",
@@ -404,9 +760,20 @@ def create_bm(data, benchmark, cal_mask, precipitation="precipitation", streamfl
         "monthly_median_flow",
         "daily_mean_flow",
         "daily_median_flow",
+        # Long-term rainfall-runoff ratio benchmarks
         "rainfall_runoff_ratio_to_all",
         "rainfall_runoff_ratio_to_annual",
         "rainfall_runoff_ratio_to_monthly",
+        "rainfall_runoff_ratio_to_daily",
+        "rainfall_runoff_ratio_to_timestep",
+        # Short-term rainfall-runoff ratio benchmarks
+        "monthly_rainfall_runoff_ratio_to_monthly",
+        "monthly_rainfall_runoff_ratio_to_daily",
+        "monthly_rainfall_runoff_ratio_to_timestep",
+        # Schaefli & Gupta (2007) benchmarks
+        "scaled_precipitation_benchmark",  # symlink to "rainfall_runoff_ratio_to_daily"
+        "adjusted_precipitation_benchmark",
+        "adjusted_smoothed_precipitation_benchmark",
     ]
     assert benchmark in bm_list, f"Requested benchmark {benchmark} not found."
 
@@ -457,6 +824,50 @@ def create_bm(data, benchmark, cal_mask, precipitation="precipitation", streamfl
 
     elif benchmark == "rainfall_runoff_ratio_to_monthly":
         bm_vals, qbm = bm_rainfall_runoff_ratio_to_monthly(
+            data, cal_mask, precipitation=precipitation, streamflow=streamflow
+        )
+
+    # Equivalent to Schaefli & Gupta's (2007) simple benchmark
+    # (adjusted precipitation, no lag and smoothing)
+    elif benchmark == "rainfall_runoff_ratio_to_daily":
+        bm_vals, qbm = bm_rainfall_runoff_ratio_to_daily(
+            data, cal_mask, precipitation=precipitation, streamflow=streamflow
+        )
+
+    elif benchmark == "rainfall_runoff_ratio_to_timestep":
+        bm_vals, qbm = bm_rainfall_runoff_ratio_to_timestep(
+            data, cal_mask, precipitation=precipitation, streamflow=streamflow
+        )
+
+    elif benchmark == "monthly_rainfall_runoff_ratio_to_monthly":
+        bm_vals, qbm = monthly_rainfall_runoff_ratio_to_monthly(
+            data, cal_mask, precipitation=precipitation, streamflow=streamflow
+        )
+
+    elif benchmark == "monthly_rainfall_runoff_ratio_to_daily":
+        bm_vals, qbm = monthly_rainfall_runoff_ratio_to_daily(
+            data, cal_mask, precipitation=precipitation, streamflow=streamflow
+        )
+
+    elif benchmark == "monthly_rainfall_runoff_ratio_to_timestep":
+        bm_vals, qbm = monthly_rainfall_runoff_ratio_to_timestep(
+            data, cal_mask, precipitation=precipitation, streamflow=streamflow
+        )
+
+    # --- Schaefli & Gupta (2007) benchmarks
+
+    elif benchmark == "scaled_precipitation_benchmark":
+        bm_vals, qbm = scaled_precipitation_benchmark(
+            data, cal_mask, precipitation=precipitation, streamflow=streamflow
+        )
+
+    elif benchmark == "adjusted_precipitation_benchmark":
+        bm_vals, qbm = adjusted_precipitation_benchmark(
+            data, cal_mask, precipitation=precipitation, streamflow=streamflow
+        )
+
+    elif benchmark == "adjusted_smoothed_precipitation_benchmark":
+        bm_vals, qbm = adjusted_smoothed_precipitation_benchmark(
             data, cal_mask, precipitation=precipitation, streamflow=streamflow
         )
 

@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from ..metrics import kge, nse, rmse
+from ..metrics import kge, mse, nse, rmse
 
 
 def test_nse():
@@ -35,6 +35,17 @@ def test_rmse():
     # Test with sim equal to mean(obs): no skill
     sim = np.ones(np.shape(obs)) * np.mean(obs)
     assert np.allclose(rmse(obs, sim), np.std(obs))
+
+
+def test_mse():
+    # Test with sim equal to obs: perfect simulation
+    obs = np.random.randint(0, 100, 1000)  # random time series
+    sim = obs
+    assert np.allclose(mse(obs, sim), 0)
+
+    # Test with sim equal to mean(obs): no skill
+    sim = np.ones(np.shape(obs)) * np.mean(obs)
+    assert np.allclose(mse(obs, sim), np.std(obs) ** 2)
 
 
 if __name__ == "__main__":

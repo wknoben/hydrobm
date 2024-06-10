@@ -1,5 +1,108 @@
 import numpy as np
 
+from .metrics import mse
+
+
+# Basic optimization routine for lagged precipitation benchmark
+def optimize_lag(scaled_precip, streamflow, max_lag=30):
+    """Optimize the lag for a lagged precipitation benchmark model.
+
+    Parameters
+    ----------
+    scaled_precip : pandas Series
+        Scaled precipitation data.
+    streamflow : pandas Series
+        Streamflow data.
+    max_lag : int, optional
+        Maximum lag to consider. Default is 30.
+
+    Returns
+    -------
+    best_lag : int
+        Best lag value.
+    best_mse : float
+        Best mean squared error value.
+
+    Notes
+    -----
+    Equally good as scipy.optimize.minimize_scalar with added rounding, but
+    much slower. Keeping as a record of the attempt in case we want to revisit
+    the optimization part of adjusted_lagged_precipitation_benchmark().
+    """
+
+    # Initialize the best lag and MSE
+    best_lag = 0
+    best_mse = np.inf
+
+    # Loop over all possible lags
+    for lag in range(0, max_lag):
+        # Shift the precipitation data by the lag
+        shifted_precip = scaled_precip.shift(lag)
+
+        # Calculate the MSE for the shifted precipitation
+        mse_val = mse(shifted_precip, streamflow)
+
+        # Update the best lag and MSE
+        if mse_val < best_mse:
+            best_lag = lag
+            best_mse = mse_val
+
+    return best_lag, best_mse
+
+
+# Basic optimization routine for lagged, smoothed precipitation benchmark
+def optimize_aspb(scaled_precip, streamflow, max_lag=30, max_window=90):
+    """Optimize the lag for a lagged smoothed precipitation benchmark model.
+
+    Parameters
+    ----------
+    scaled_precip : pandas Series
+        Scaled precipitation data.
+    streamflow : pandas Series
+        Streamflow data.
+    max_lag : int, optional
+        Maximum lag to consider. Default is 30.
+    max_window: int, optional
+        Maximum smoothing window length to consider. Default is 90.
+
+    Returns
+    -------
+    best_lag : int
+        Best lag value.
+    best_window: int
+        Best window value.
+    best_mse : float
+        Best mean squared error value.
+
+    Notes
+    -----
+    Implemented because scipy.optimize.minimize seems to struggle with
+    integer-only solutions, and searching docs is hard.
+    """
+
+    # Initialize the best lag and MSE
+    best_lag = 0
+    best_window = 0
+    all_mse = np.full([max_lag, max_window], np.inf)
+    best_mse = np.inf
+
+    # Loop over all possible lags
+    for lag in range(0, max_lag):
+        for window in range(1, max_window):  # window=0 is undefined
+            # Shift the precipitation data by the lag and smooth
+            aspb = scaled_precip.shift(lag).rolling(window=window).mean()
+
+            # Calculate the MSE for the shifted precipitation
+            mse_val = mse(aspb, streamflow)
+            if not np.isnan(mse_val):  # might get NaN if lag/window > time series
+                all_mse[lag, window] = mse_val
+
+    # Find the lowest MSE. If multiple, select smallest lag and window.
+    best_lag, best_window = np.unravel_index(all_mse.argmin(), all_mse.shape)
+    best_mse = all_mse[best_lag, best_window]
+
+    return best_lag, best_window, best_mse
+
 
 # Basic snow accumulation and melt model
 def rain_to_melt(
