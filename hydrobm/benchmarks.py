@@ -1,7 +1,7 @@
 import pandas as pd
 from scipy.optimize import minimize_scalar
 
-from .metrics import mse
+from .metrics import calculate_metric, mse
 from .utils import optimize_aspb
 
 # from scipy.optimize import Bounds, minimize, minimize_scalar
@@ -749,7 +749,7 @@ def create_bm(data, benchmark, cal_mask, precipitation="precipitation", streamfl
         Benchmark flow time series for the given benchmark model.
     """
 
-    # < TO DO >: Update/complete the list
+    # List of currently implemented benchmark models
     bm_list = [
         # Streamflow benchmarks
         "mean_flow",
@@ -771,7 +771,7 @@ def create_bm(data, benchmark, cal_mask, precipitation="precipitation", streamfl
         "monthly_rainfall_runoff_ratio_to_daily",
         "monthly_rainfall_runoff_ratio_to_timestep",
         # Schaefli & Gupta (2007) benchmarks
-        "scaled_precipitation_benchmark",  # symlink to "rainfall_runoff_ratio_to_daily"
+        "scaled_precipitation_benchmark",  # equivalent to "rainfall_runoff_ratio_to_daily"
         "adjusted_precipitation_benchmark",
         "adjusted_smoothed_precipitation_benchmark",
     ]
@@ -876,7 +876,53 @@ def create_bm(data, benchmark, cal_mask, precipitation="precipitation", streamfl
     return bm_vals, qbm
 
 
-def evaluate_bm(data, benchmark_flow, metric, cal_mask, val_mask):
-    cal_score = 0
-    val_score = 0
+def evaluate_bm(data, benchmark_flow, metric, cal_mask, val_mask=None, streamflow="streamflow", ignore_nan=True):
+    """Helper function to calculate calculation and evaluation metric scores for a given
+    set of observations and benchmark flows.
+
+    Parameters
+    ----------
+    data : pandas DataFrame
+        Input data containing streamflow observation column.
+    benchmark_flow : pandas DataFrame
+        Benchmark flow time series as returned by one of the benchmark model functions.
+    metric : str
+        Name of the metric to calculate. See hydrobm/metrics for a list.
+    cal_mask : pandas Series
+        Boolean mask for the calculation period.
+    val_mask : pandas Series, optional
+        Boolean mask for the evaluation period. Default is None (no evaluation score returned).
+    streamflow : str, optional
+        Name of the streamflow column in the input data. Default is ['streamflow'].
+    ignore_nan : bool, optional
+        Flag to consider only non-NaN values. Default is True.
+
+    Returns
+    -------
+    cal_score: float
+        Metric score for the calculation period.
+    val_score: float
+        Metric score for the evaluation period. NaN if no val_mask specified.
+    """
+
+    # Compute the metric for the calculation period
+    cal_obs = data[streamflow].loc[cal_mask]
+    cal_sim = benchmark_flow.loc[cal_mask]  # should have only one column
+    assert (
+        cal_obs.index == cal_sim.index
+    ).all(), "Time index mismatch in metric calculation for calculation period"
+    cal_score = calculate_metric(cal_obs.values.flatten(), cal_sim.values.flatten(), metric, ignore_nan=ignore_nan)
+
+    # Calculate the evaluation score if a mask is provided
+    val_score = pd.NA
+    if val_mask is not None:
+        val_obs = data[streamflow].loc[val_mask]
+        val_sim = benchmark_flow.loc[val_mask]
+        assert (
+            val_obs.index == val_sim.index
+        ).all(), "Time index mismatch in metric calculation for evaluation period"
+        val_score = calculate_metric(
+            val_obs.values.flatten(), val_sim.values.flatten(), metric, ignore_nan=ignore_nan
+        )
+
     return cal_score, val_score

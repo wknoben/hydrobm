@@ -105,7 +105,7 @@ def kge(obs, sim, ignore_nan=True):
         obs, sim = filter_nan(obs, sim)
 
     # Account for the case where obs has zero variance
-    if np.std(obs) == 0:
+    if (np.std(obs) == 0) or (np.std(sim) == 0):
         r = 0
     else:
         r = np.corrcoef(obs, sim)[0, 1]

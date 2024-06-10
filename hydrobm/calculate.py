@@ -1,18 +1,23 @@
 import pandas as pd
 import xarray as xr
-from benchmarks import create_bm, evaluate_bm
-from utils import rain_to_melt
+
+from .benchmarks import create_bm, evaluate_bm
+from .utils import rain_to_melt
 
 
 # Main function to calculate metric scores for a given set of benchmark models
 def calc_bm(
     data,
+    # Time period selection
     cal_mask,
-    val_mask,
+    val_mask=[],
+    # Variable names in 'data'
     precipitation="precipitation",
     streamflow="streamflow",
+    # Benchmark choices
     benchmarks=["daily_mean_flow"],
     metrics=["rmse"],
+    # Snow model inputs
     calc_snowmelt=False,
     temperature="temperature",
     snowmelt_threshold=0.0,
@@ -27,12 +32,12 @@ def calc_bm(
         If xarray Dataset is provided, it will be converted to a DataFrame.
     cal_mask : pandas Series
         Boolean mask for the calculation period.
-    val_mask : pandas Series
-        Boolean mask for the validation period.
+    val_mask : pandas Series, optional
+        Boolean mask for the validation period. Default is [] (no evaluation scores returned).
     precipitation : str, optional
-        Name of the precipitation column in the input data. Default is 'P'.
+        Name of the precipitation column in the input data. Default is 'precipitation'.
     streamflow : str, optional
-        Name of the streamflow column in the input data. Default is 'Q'.
+        Name of the streamflow column in the input data. Default is 'streamflow'.
     benchmarks : list, optional
         List of benchmark models to calculate. Default is ['daily_mean_flow'].
     metrics : list, optional
@@ -40,7 +45,7 @@ def calc_bm(
     calc_snowmelt : bool, optional
         Flag to run a basic snow accumulation and melt model. Default is False.
     temperature : str, optional
-        Name of the temperature column in the input data. Default is 'T'.
+        Name of the temperature column in the input data. Default is 'temperature'.
     snowmelt_threshold : float, optional
         Threshold temperature for snowmelt calculation. Default is 0.0 [C].
 
@@ -72,15 +77,11 @@ def calc_bm(
 
     # Input check: calibration and validation masks fall within the data index
     if not cal_mask.isin(data.index).all():
-        raise ValueError("Calibration mask falls outside the data index")
+        raise ValueError("Benchmark calculation mask falls outside the data index")
     if not val_mask.isin(data.index).all():
-        raise ValueError("Validation mask falls outside the data index")
+        raise ValueError("benchmark evaluation mask falls outside the data index")
 
-    # < TO DO > Input check: metrics are available in the hydroBM library
-
-    # < TO DO > Add a basic snow-melt model if flagged by user
-    # This will take precipitation, temperature and optionally a threshold temperature
-    # and melt rate as input. The output will be a time series of rain+melt.
+    # Run a basic snow model if requested
     if calc_snowmelt:
         # Input check: temperature column is present in input data
         if temperature not in data.columns:
@@ -102,7 +103,11 @@ def calc_bm(
     )  # list to store DataFrames of benchmark flows, merged later if multiple benchmarks are requested
     for benchmark in benchmarks:
         qbm = create_bm(
-            data, benchmark, precipitation, streamflow, cal_mask
+            data,
+            benchmark,
+            cal_mask,
+            precipitation=precipitation,
+            streamflow=streamflow,
         )  # Create the benchmark flow for calibration period
         benchmark_flow_list.append(qbm)
 

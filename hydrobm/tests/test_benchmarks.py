@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from ..benchmarks import create_bm
+from ..benchmarks import create_bm, evaluate_bm
 
 
 def create_sines(period=2, mean_p=2, mean_q=1, var_p=1, var_q=1, offset_p=0, offset_q=0):
@@ -349,6 +349,24 @@ def test_adjusted_smoothed_precipitation_benchmark():
     bm_v, bm_t = create_bm(data, "adjusted_smoothed_precipitation_benchmark", cal_mask)
     assert np.isclose(bm_v, 0.5), "Failed adjusted smoothed precipitation benchmark T1a."
     pd.testing.assert_frame_equal(bm_t, expected_output, check_dtype=False)
+
+
+def test_evaluate_bm():
+    # We know the benchmarks work, so we don't need a ton of tests here
+
+    # Get some simple testing data and split 50/50
+    data = pd.DataFrame({"precipitation": [0, 4, 6, 0, 1, 0], "streamflow": [0, 2, 3, 0, 1, 0]})
+    cal_mask = data.index < 3
+    val_mask = ~cal_mask
+
+    # Create a benchmark
+    _, qbm = create_bm(data, "scaled_precipitation_benchmark", cal_mask)
+
+    # Calculate MSE
+    cal_mse, val_mse = evaluate_bm(data, qbm, "mse", cal_mask, val_mask=val_mask)
+
+    assert np.isclose(cal_mse, 0)
+    assert np.isclose(val_mse, np.mean(np.array([0, 0.5, 0]) ** 2))
 
 
 if __name__ == "__main__":
