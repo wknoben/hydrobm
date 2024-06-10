@@ -104,11 +104,56 @@ def kge(obs, sim, ignore_nan=True):
     if ignore_nan:
         obs, sim = filter_nan(obs, sim)
 
-    # Account for the case where sim has zero variance
-    if np.std(sim) == 0:
+    # Account for the case where obs has zero variance
+    if np.std(obs) == 0:
         r = 0
     else:
         r = np.corrcoef(obs, sim)[0, 1]
     alpha = np.std(sim) / np.std(obs)
     beta = np.mean(sim) / np.mean(obs)
     return 1 - np.sqrt((r - 1) ** 2 + (alpha - 1) ** 2 + (beta - 1) ** 2)
+
+
+def calculate_metric(obs, sim, metric, ignore_nan=True):
+    """Helper function to check metric existence and simplify loops.
+
+    Parameters
+    ----------
+    obs : array-like
+        Observed values.
+    sim : array-like
+        Simulated values.
+    metric: str
+        Name of the metric to calculate.
+    ignore_nan : bool, optional
+        Flag to consider only non-NaN values. Default is True.
+
+    Returns
+    -------
+    float
+        Metric score.
+    """
+
+    # List of currently implemented metrics
+    metric_list = [
+        "nse",
+        "mse",
+        "rmse",
+        "kge",
+    ]
+
+    assert metric in metric_list, f"Requested metric {metric} not found."
+
+    if metric == "nse":
+        val = nse(obs, sim, ignore_nan=ignore_nan)
+
+    elif metric == "mse":
+        val = mse(obs, sim, ignore_nan=ignore_nan)
+
+    elif metric == "rmse":
+        val = rmse(obs, sim, ignore_nan=ignore_nan)
+
+    elif metric == "kge":
+        val = kge(obs, sim, ignore_nan=ignore_nan)
+
+    return val
