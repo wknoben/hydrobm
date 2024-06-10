@@ -80,11 +80,8 @@ def optimize_aspb(scaled_precip, streamflow, max_lag=30, max_window=90):
     integer-only solutions, and searching docs is hard.
     """
 
-    # Initialize the best lag and MSE
-    best_lag = 0
-    best_window = 0
+    # Initialize an array to store MSE scores
     all_mse = np.full([max_lag, max_window], np.inf)
-    best_mse = np.inf
 
     # Loop over all possible lags
     for lag in range(0, max_lag):
