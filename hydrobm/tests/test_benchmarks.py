@@ -330,7 +330,7 @@ def test_scaled_precipitation_benchmark():
 
 
 def test_adjusted_precipitation_benchmark():
-    # Test 1: check if we find the known optimum lag
+    # Test 1: check if we find the known optimum lag (2)
     data = pd.DataFrame({"precipitation": [2, 0, 0, 0, 0], "streamflow": [0, 0, 1, 0, 0]})
     expected_output = pd.DataFrame({"bm_adjusted_precipitation_benchmark": [pd.NA, pd.NA, 1, 0, 0]})
     cal_mask = data.index
@@ -340,7 +340,7 @@ def test_adjusted_precipitation_benchmark():
 
 
 def test_adjusted_smoothed_precipitation_benchmark():
-    # Test 1: check if we find the known optimum lag
+    # Test 1: check if we find the known optimum lag and smoothing (2,3)
     data = pd.DataFrame({"precipitation": [0, 0, 6, 0, 0, 0, 0], "streamflow": [0, 0, 0, 0, 1, 1, 1]})
     expected_output = pd.DataFrame(
         {"bm_adjusted_smoothed_precipitation_benchmark": [pd.NA, pd.NA, pd.NA, pd.NA, 1, 1, 1]}
