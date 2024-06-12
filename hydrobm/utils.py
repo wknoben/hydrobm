@@ -94,7 +94,7 @@ def optimize_aspb(scaled_precip, streamflow, max_lag=30, max_window=90):
             if not np.isnan(mse_val):  # might get NaN if lag/window > time series
                 all_mse[lag, window] = mse_val
 
-    # Find the lowest MSE. If multiple, select smallest lag and window.
+    # Find the lowest MSE. If multiple, by default selects the smallest lag and window.
     best_lag, best_window = np.unravel_index(all_mse.argmin(), all_mse.shape)
     best_mse = all_mse[best_lag, best_window]
 

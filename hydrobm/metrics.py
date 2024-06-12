@@ -16,6 +16,23 @@ def filter_nan(obs, sim):
     tuple
         Tuple of arrays with non-NaN values from both observed and simulated data.
     """
+    # For some reason np.isnan gets really cranky if you feed it floats.
+    # This is a quick hack until I can figure out why this happens.
+    obs = np.float64(obs)
+    sim = np.float64(sim)
+    # One possible solution appears to be to go into the benchmark definitions
+    # and replace all the temporary pd.NA values with something like -999 and
+    # enforce dtype=np.float64 when creating the dataframe. I'm reluctant to
+    # put this in right now because it's not fully clear to me why this issue
+    # doesn't crop up during the tests, and only when running the example code.
+    # To reproduce, run the camels_01022500_minimal.nc example with metric 'nse'
+    # and benchmark 'mean_daily_flow', and comment out the two lines above.
+
+    # Catch the case where we have all NaNs.
+    # Rare, but might happen for short timeseries and the lagged benchmarks.
+    if np.all(np.isnan(obs)) or np.all(np.isnan(sim)):
+        return np.nan, np.nan
+
     mask = ~np.isnan(obs) & ~np.isnan(sim)
     return obs[mask], sim[mask]
 

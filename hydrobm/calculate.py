@@ -29,7 +29,6 @@ def calc_bm(
     ----------
     data : pandas DataFrame or xarray Dataset
         Input data containing precipitation and streamflow columns.
-        If xarray Dataset is provided, it will be converted to a DataFrame.
     cal_mask : pandas Series
         Boolean mask for the calculation period.
     val_mask : pandas Series, optional
@@ -75,11 +74,11 @@ def calc_bm(
     if not isinstance(data.index, pd.DatetimeIndex):
         raise ValueError("Input data must have a datetime index")
 
-    # Input check: calibration and validation masks fall within the data index
-    if not cal_mask.isin(data.index).all():
-        raise ValueError("Benchmark calculation mask falls outside the data index")
-    if not val_mask.isin(data.index).all():
-        raise ValueError("benchmark evaluation mask falls outside the data index")
+    # Input check: calibration and validation masks same length as the data index
+    if len(cal_mask) != len(data.index):
+        raise ValueError("Benchmark calculation mask does not match length of data index")
+    if len(val_mask) != len(data.index):
+        raise ValueError("benchmark evaluation mask does not match length of data index")
 
     # Run a basic snow model if requested
     if calc_snowmelt:
@@ -89,8 +88,8 @@ def calc_bm(
         # Calculate snowmelt
         data = rain_to_melt(
             data,
-            precipitation="precipitation",
-            temperature="temperature",
+            precipitation=precipitation,
+            temperature=temperature,
             snow_and_melt_temp=snowmelt_threshold,
             snow_and_melt_rate=snowmelt_rate,
         )
@@ -102,7 +101,7 @@ def calc_bm(
         []
     )  # list to store DataFrames of benchmark flows, merged later if multiple benchmarks are requested
     for benchmark in benchmarks:
-        qbm = create_bm(
+        _, qbm = create_bm(
             data,
             benchmark,
             cal_mask,
@@ -112,7 +111,7 @@ def calc_bm(
         benchmark_flow_list.append(qbm)
 
     # Then loop over the metrics to calculate scores for each benchmark flow
-    metrics = {"benchmarks": benchmarks}  # dictionary to store metric scores; tracks the benchmark models used
+    results = {"benchmarks": benchmarks}  # dictionary to store metric scores; tracks the benchmark models used
     for metric in metrics:
         cal_scores = []
         val_scores = []
@@ -120,9 +119,9 @@ def calc_bm(
             [cal_score, val_score] = evaluate_bm(data, benchmark_flow, metric, cal_mask, val_mask)
             cal_scores.append(cal_score)
             val_scores.append(val_score)
-        metrics.update({metric + "_cal": cal_scores, metric + "_val": val_scores})
+        results.update({metric + "_cal": cal_scores, metric + "_val": val_scores})
 
-    return pd.concat(benchmark_flow_list, axis=1), metrics
+    return pd.concat(benchmark_flow_list, axis=1), results
 
 
 """

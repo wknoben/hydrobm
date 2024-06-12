@@ -77,6 +77,12 @@ def test_monthly_mean_flow():
     assert len(bm_v.unique()) == 12, "Failed monthly mean flow T1a."
     assert all(bm_t.groupby(bm_t.index.month).nunique() == 1), "Failed monthly mean flow T1b."
 
+    # T2: should return different values for every month, but the same values within each month
+    cal_mask = data.index.year == 2001  # all data
+    bm_v, bm_t = create_bm(data, "monthly_mean_flow", cal_mask)
+    assert len(bm_v.unique()) == 12, "Failed monthly mean flow T2a."
+    assert all(bm_t.groupby(bm_t.index.month).nunique() == 1), "Failed monthly mean flow T2b."
+
 
 def test_daily_mean_flow():
     # Get the testing data
@@ -87,6 +93,12 @@ def test_daily_mean_flow():
     bm_v, bm_t = create_bm(data, "daily_mean_flow", cal_mask)
     assert len(bm_v.unique()) == 365, "Failed daily mean flow T1a."
     assert all(bm_t.groupby(bm_t.index.dayofyear).nunique() == 1), "Failed daily mean flow T1b."
+
+    # T2: should return different values for every day, but the same values within each day
+    cal_mask = data.index.year == 2001  # all data
+    bm_v, bm_t = create_bm(data, "daily_mean_flow", cal_mask)
+    assert len(bm_v.unique()) == 365, "Failed daily mean flow T2a."
+    assert all(bm_t.groupby(bm_t.index.dayofyear).nunique() == 1), "Failed daily mean flow T2b."
 
 
 def test_rainfall_runoff_ratio_to_all():
@@ -331,8 +343,9 @@ def test_scaled_precipitation_benchmark():
 
 def test_adjusted_precipitation_benchmark():
     # Test 1: check if we find the known optimum lag (2)
-    data = pd.DataFrame({"precipitation": [2, 0, 0, 0, 0], "streamflow": [0, 0, 1, 0, 0]})
-    expected_output = pd.DataFrame({"bm_adjusted_precipitation_benchmark": [pd.NA, pd.NA, 1, 0, 0]})
+    dates = pd.date_range("2001-01-01", periods=5, freq="D")
+    data = pd.DataFrame({"precipitation": [2, 0, 0, 0, 0], "streamflow": [0, 0, 1, 0, 0]}, index=dates)
+    expected_output = pd.DataFrame({"bm_adjusted_precipitation_benchmark": [pd.NA, pd.NA, 1, 0, 0]}, index=dates)
     cal_mask = data.index
     bm_v, bm_t = create_bm(data, "adjusted_precipitation_benchmark", cal_mask)
     assert np.isclose(bm_v, 0.5), "Failed adjusted precipitation benchmark T1a."
@@ -341,9 +354,10 @@ def test_adjusted_precipitation_benchmark():
 
 def test_adjusted_smoothed_precipitation_benchmark():
     # Test 1: check if we find the known optimum lag and smoothing (2,3)
-    data = pd.DataFrame({"precipitation": [0, 0, 6, 0, 0, 0, 0], "streamflow": [0, 0, 0, 0, 1, 1, 1]})
+    dates = pd.date_range("2001-01-01", periods=7, freq="D")
+    data = pd.DataFrame({"precipitation": [0, 0, 6, 0, 0, 0, 0], "streamflow": [0, 0, 0, 0, 1, 1, 1]}, index=dates)
     expected_output = pd.DataFrame(
-        {"bm_adjusted_smoothed_precipitation_benchmark": [pd.NA, pd.NA, pd.NA, pd.NA, 1, 1, 1]}
+        {"bm_adjusted_smoothed_precipitation_benchmark": [pd.NA, pd.NA, pd.NA, pd.NA, 1, 1, 1]}, index=dates
     )
     cal_mask = data.index
     bm_v, bm_t = create_bm(data, "adjusted_smoothed_precipitation_benchmark", cal_mask)
@@ -355,8 +369,9 @@ def test_evaluate_bm():
     # We know the benchmarks work, so we don't need a ton of tests here
 
     # Get some simple testing data and split 50/50
-    data = pd.DataFrame({"precipitation": [0, 4, 6, 0, 1, 0], "streamflow": [0, 2, 3, 0, 1, 0]})
-    cal_mask = data.index < 3
+    dates = pd.date_range("2001-01-01", periods=6, freq="D")
+    data = pd.DataFrame({"precipitation": [0, 4, 6, 0, 1, 0], "streamflow": [0, 2, 3, 0, 1, 0]}, index=dates)
+    cal_mask = data.index.day < 4
     val_mask = ~cal_mask
 
     # Create a benchmark

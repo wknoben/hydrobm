@@ -95,10 +95,15 @@ def bm_annual_mean_flow(data, cal_mask, streamflow="streamflow"):
     """
     cal_set = data[streamflow].loc[cal_mask]
     bm_vals = cal_set.groupby(cal_set.index.year).mean()  # Returns one value per year
+    # qbm = pd.DataFrame(
+    #     {"bm_annual_mean_flow": pd.NA}, index=cal_set.index
+    # )  # Initialize an empty dataframe with the right number of time steps
+    # for year in qbm.index.year.unique():  # TO DO: check if there is a cleaner way to do this
+    #     qbm.loc[qbm.index.year == year, "bm_annual_mean_flow"] = bm_vals[bm_vals.index == year].values
     qbm = pd.DataFrame(
-        {"bm_annual_mean_flow": pd.NA}, index=cal_set.index
+        {"bm_annual_mean_flow": pd.NA}, index=data.index
     )  # Initialize an empty dataframe with the right number of time steps
-    for year in qbm.index.year.unique():  # TO DO: check if there is a cleaner way to do this
+    for year in bm_vals.index:  # TO DO: check if there is a cleaner way to do this
         qbm.loc[qbm.index.year == year, "bm_annual_mean_flow"] = bm_vals[bm_vals.index == year].values
     return bm_vals, qbm
 
@@ -131,8 +136,11 @@ def bm_annual_median_flow(data, cal_mask, streamflow="streamflow"):
 
     cal_set = data[streamflow].loc[cal_mask]
     bm_vals = cal_set.groupby(cal_set.index.year).median()
-    qbm = pd.DataFrame({"bm_annual_median_flow": pd.NA}, index=cal_set.index)
-    for year in qbm.index.year.unique():
+    # qbm = pd.DataFrame({"bm_annual_median_flow": pd.NA}, index=cal_set.index)
+    # for year in qbm.index.year.unique():
+    #     qbm.loc[qbm.index.year == year, "bm_annual_median_flow"] = bm_vals[bm_vals.index == year].values
+    qbm = pd.DataFrame({"bm_annual_median_flow": pd.NA}, index=data.index)
+    for year in bm_vals.index:
         qbm.loc[qbm.index.year == year, "bm_annual_median_flow"] = bm_vals[bm_vals.index == year].values
     return bm_vals, qbm
 
@@ -158,9 +166,8 @@ def bm_monthly_mean_flow(data, cal_mask, streamflow="streamflow"):
         Benchmark flow time series for the monthly mean flow benchmark model.
     """
 
-    bm_vals = (
-        data[streamflow].loc[cal_mask].groupby(data.index.month).mean()
-    )  # Returns one value per month in the index
+    cal_set = data[streamflow].loc[cal_mask]
+    bm_vals = cal_set.groupby(cal_set.index.month).mean()  # Returns one value per month in the index
     qbm = pd.DataFrame({"bm_monthly_mean_flow": pd.NA}, index=data.index)
     for month in qbm.index.month.unique():
         qbm.loc[qbm.index.month == month, "bm_monthly_mean_flow"] = bm_vals[bm_vals.index == month].values
@@ -188,7 +195,8 @@ def bm_monthly_median_flow(data, cal_mask, streamflow="streamflow"):
         Benchmark flow time series for the monthly median flow benchmark model.
     """
 
-    bm_vals = data[streamflow].loc[cal_mask].groupby(data.index.month).median()
+    cal_set = data[streamflow].loc[cal_mask]
+    bm_vals = cal_set.groupby(cal_set.index.month).median()
     qbm = pd.DataFrame({"bm_monthly_median_flow": pd.NA}, index=data.index)
     for month in qbm.index.month.unique():
         qbm.loc[qbm.index.month == month, "bm_monthly_median_flow"] = bm_vals[bm_vals.index == month].values
@@ -219,9 +227,8 @@ def bm_daily_mean_flow(data, cal_mask, streamflow="streamflow"):
     # < TO DO > Better DoY creation, so that dates have consistent numbers. Trial version below.
     # create a day-of-year index with consistent values for each day whether leap year or not
     # data['mmdd'] = data.index.strftime('%m') + data.index.strftime('%d')
-    bm_vals = (
-        data[streamflow].loc[cal_mask].groupby(data.index.dayofyear).mean()
-    )  # Returns one value per day-of-year
+    cal_set = data[streamflow].loc[cal_mask]
+    bm_vals = cal_set.groupby(cal_set.index.dayofyear).mean()  # Returns one value per day-of-year
     qbm = pd.DataFrame({"bm_daily_mean_flow": pd.NA}, index=data.index)
     for doy in qbm.index.dayofyear.unique():
         qbm.loc[qbm.index.dayofyear == doy, "bm_daily_mean_flow"] = bm_vals[bm_vals.index == doy].values
@@ -249,7 +256,8 @@ def bm_daily_median_flow(data, cal_mask, streamflow="streamflow"):
         Benchmark flow time series for the daily median flow benchmark model.
     """
 
-    bm_vals = data[streamflow].loc[cal_mask].groupby(data.index.dayofyear).median()
+    cal_set = data[streamflow].loc[cal_mask]
+    bm_vals = cal_set.groupby(cal_set.index.dayofyear).median()
     qbm = pd.DataFrame({"bm_daily_median_flow": pd.NA}, index=data.index)
     for doy in qbm.index.dayofyear.unique():
         qbm.loc[qbm.index.dayofyear == doy, "bm_daily_median_flow"] = bm_vals[bm_vals.index == doy].values
@@ -521,7 +529,7 @@ def monthly_rainfall_runoff_ratio_to_daily(data, cal_mask, precipitation="precip
             this_day = (data.index.year == year) & (data.index.dayofyear == doy)
             mean_daily_precip = data[precipitation].loc[this_day].mean()
             month = data[precipitation].loc[this_day].index.month[0]
-            qbm.loc[this_day, "bm_rainfall_runoff_ratio_to_daily"] = bm_vals.loc[month] * mean_daily_precip
+            qbm.loc[this_day, "bm_monthly_rainfall_runoff_ratio_to_daily"] = bm_vals.loc[month] * mean_daily_precip
     return bm_vals, qbm
 
 
@@ -653,10 +661,14 @@ def adjusted_precipitation_benchmark(data, cal_mask, precipitation="precipitatio
     def mse_apb(lag):
         return mse(apb(lag), cal_set[streamflow])
 
-    res = minimize_scalar(mse_apb, bounds=(0, len(cal_set) - 1), method="bounded")
+    # Find the maximum lag value to avoid shifting the data too much (1 year max seems reasonable)
+    max_lag = data.groupby(data.index.year).size().iloc[0]  # group by year and get the size of the first group
+
+    # Optimize
+    res = minimize_scalar(mse_apb, bounds=(0, max_lag - 1), method="bounded")
     lag = round(res.x)  # optimal lag value, rounded to a whole timestep as in mse_lagged_precipitation
     qbm = pd.DataFrame(
-        {"bm_adjusted_precipitation_benchmark": bm_vals * cal_set[precipitation].shift(lag)}, index=data.index
+        {"bm_adjusted_precipitation_benchmark": bm_vals * data[precipitation].shift(lag)}, index=data.index
     )
     return bm_vals, qbm
 
@@ -697,13 +709,15 @@ def adjusted_smoothed_precipitation_benchmark(
     bm_vals = cal_set[streamflow].sum() / cal_set[precipitation].sum()  # single rainfall-runoff ratio
     # minimize MSE between observed and predicted streamflow
 
-    # # < TO DO >: figure out if we can make scipy minimize with integers only
-    # #             because our current approach is a bit slow.
+    # < TO DO >: figure out if we can make scipy minimize with integers only
+    # because our current approach is a bit slow. Initial attempt below but
+    # this is not very robust. It works on the simple test cases but fails to
+    # search the longer space provided by real data.
     def aspb(lag, window):
         lag = round(lag)
         window = round(window)
         aspb = (
-            bm_vals * cal_set[precipitation].shift(lag).rolling(window=window).mean()
+            bm_vals * data[precipitation].shift(lag).rolling(window=window).mean()
         )  # This defaults to a left window
         return aspb
 
@@ -711,12 +725,23 @@ def adjusted_smoothed_precipitation_benchmark(
     #     lag, window = params
     #     return mse(aspb(lag, window), cal_set[streamflow])
 
+    # Find the maximum lag value to avoid shifting the data too much (1 year max seems reasonable)
+    timesteps_per_year = (
+        data.groupby(data.index.year).size().iloc[0]
+    )  # group by year and get the size of the first group
+
     # # We need Nelder-Mead (or similar) here because the gradients are messed up due
-    # # to the round-to-integer we do. Not theoretically optimal but seems fast enough.
-    # res = minimize(mse_aspb, [0, 1], bounds=[(0,None),(1,None)], method='Powell')
+    # to the round-to-integer we do. Not theoretically optimal but seems fast enough.
+    # res = minimize(mse_aspb, [0, 1], bounds=[(0,timesteps_per_year-1),(1,timesteps_per_year-1)], method='Powell')
     # lag,window = res.x.round()
 
-    lag, window, _ = optimize_aspb(bm_vals * cal_set[precipitation], cal_set[streamflow])
+    # Optimize
+    lag, window, _ = optimize_aspb(
+        bm_vals * cal_set[precipitation],
+        cal_set[streamflow],
+        max_lag=timesteps_per_year - 1,
+        max_window=timesteps_per_year - 1,
+    )
     qbm = pd.DataFrame({"bm_adjusted_smoothed_precipitation_benchmark": aspb(lag, window)}, index=data.index)
     return bm_vals, qbm
 
@@ -905,6 +930,8 @@ def evaluate_bm(data, benchmark_flow, metric, cal_mask, val_mask=None, streamflo
         Metric score for the evaluation period. NaN if no val_mask specified.
     """
 
+    # Catch
+
     # Compute the metric for the calculation period
     cal_obs = data[streamflow].loc[cal_mask]
     cal_sim = benchmark_flow.loc[cal_mask]  # should have only one column
@@ -916,13 +943,21 @@ def evaluate_bm(data, benchmark_flow, metric, cal_mask, val_mask=None, streamflo
     # Calculate the evaluation score if a mask is provided
     val_score = pd.NA
     if val_mask is not None:
-        val_obs = data[streamflow].loc[val_mask]
-        val_sim = benchmark_flow.loc[val_mask]
-        assert (
-            val_obs.index == val_sim.index
-        ).all(), "Time index mismatch in metric calculation for evaluation period"
-        val_score = calculate_metric(
-            val_obs.values.flatten(), val_sim.values.flatten(), metric, ignore_nan=ignore_nan
-        )
+        # Catch the case where we have an annual mean or median benchmark.
+        # We cannot use these for prediction so the benchmark dataframe will
+        # be shorter than the data dataframe, and we'll error out trying to
+        # use the cal_mask and val_mask values, because that index does not
+        # have the right length for our reduced-length benchmark dataframe.
+        # Here we'll check for equal lengths of benchmark and data, and only
+        # if so we'll calculate a val score. Otherwise we'll just return NaN.
+        if len(benchmark_flow) == len(data[streamflow]):
+            val_obs = data[streamflow].loc[val_mask]
+            val_sim = benchmark_flow.loc[val_mask]
+            assert (
+                val_obs.index == val_sim.index
+            ).all(), "Time index mismatch in metric calculation for evaluation period"
+            val_score = calculate_metric(
+                val_obs.values.flatten(), val_sim.values.flatten(), metric, ignore_nan=ignore_nan
+            )
 
     return cal_score, val_score
