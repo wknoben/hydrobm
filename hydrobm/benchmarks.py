@@ -944,21 +944,13 @@ def evaluate_bm(data, benchmark_flow, metric, cal_mask, val_mask=None, streamflo
     # Calculate the evaluation score if a mask is provided
     val_score = np.nan
     if val_mask is not None:
-        # Catch the case where we have an annual mean or median benchmark.
-        # We cannot use these for prediction so the benchmark dataframe will
-        # be shorter than the data dataframe, and we'll error out trying to
-        # use the cal_mask and val_mask values, because that index does not
-        # have the right length for our reduced-length benchmark dataframe.
-        # Here we'll check for equal lengths of benchmark and data, and only
-        # if so we'll calculate a val score. Otherwise we'll just return NaN.
-        if len(benchmark_flow) == len(data[streamflow]):
-            val_obs = data[streamflow].loc[val_mask]
-            val_sim = benchmark_flow.loc[val_mask]
-            assert (
-                val_obs.index == val_sim.index
-            ).all(), "Time index mismatch in metric calculation for evaluation period"
-            val_score = calculate_metric(
-                val_obs.values.flatten(), val_sim.values.flatten(), metric, ignore_nan=ignore_nan
-            )
+        val_obs = data[streamflow].loc[val_mask]
+        val_sim = benchmark_flow.loc[val_mask]
+        assert (
+            val_obs.index == val_sim.index
+        ).all(), "Time index mismatch in metric calculation for evaluation period"
+        val_score = calculate_metric(
+            val_obs.values.flatten(), val_sim.values.flatten(), metric, ignore_nan=ignore_nan
+        )
 
     return cal_score, val_score
