@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from scipy.optimize import minimize_scalar
 
@@ -96,12 +97,12 @@ def bm_annual_mean_flow(data, cal_mask, streamflow="streamflow"):
     cal_set = data[streamflow].loc[cal_mask]
     bm_vals = cal_set.groupby(cal_set.index.year).mean()  # Returns one value per year
     # qbm = pd.DataFrame(
-    #     {"bm_annual_mean_flow": pd.NA}, index=cal_set.index
+    #     {"bm_annual_mean_flow": np.nan}, index=cal_set.index
     # )  # Initialize an empty dataframe with the right number of time steps
     # for year in qbm.index.year.unique():  # TO DO: check if there is a cleaner way to do this
     #     qbm.loc[qbm.index.year == year, "bm_annual_mean_flow"] = bm_vals[bm_vals.index == year].values
     qbm = pd.DataFrame(
-        {"bm_annual_mean_flow": pd.NA}, index=data.index
+        {"bm_annual_mean_flow": np.nan}, index=data.index
     )  # Initialize an empty dataframe with the right number of time steps
     for year in bm_vals.index:  # TO DO: check if there is a cleaner way to do this
         qbm.loc[qbm.index.year == year, "bm_annual_mean_flow"] = bm_vals[bm_vals.index == year].values
@@ -136,10 +137,10 @@ def bm_annual_median_flow(data, cal_mask, streamflow="streamflow"):
 
     cal_set = data[streamflow].loc[cal_mask]
     bm_vals = cal_set.groupby(cal_set.index.year).median()
-    # qbm = pd.DataFrame({"bm_annual_median_flow": pd.NA}, index=cal_set.index)
+    # qbm = pd.DataFrame({"bm_annual_median_flow": np.nan}, index=cal_set.index)
     # for year in qbm.index.year.unique():
     #     qbm.loc[qbm.index.year == year, "bm_annual_median_flow"] = bm_vals[bm_vals.index == year].values
-    qbm = pd.DataFrame({"bm_annual_median_flow": pd.NA}, index=data.index)
+    qbm = pd.DataFrame({"bm_annual_median_flow": np.nan}, index=data.index)
     for year in bm_vals.index:
         qbm.loc[qbm.index.year == year, "bm_annual_median_flow"] = bm_vals[bm_vals.index == year].values
     return bm_vals, qbm
@@ -168,7 +169,7 @@ def bm_monthly_mean_flow(data, cal_mask, streamflow="streamflow"):
 
     cal_set = data[streamflow].loc[cal_mask]
     bm_vals = cal_set.groupby(cal_set.index.month).mean()  # Returns one value per month in the index
-    qbm = pd.DataFrame({"bm_monthly_mean_flow": pd.NA}, index=data.index)
+    qbm = pd.DataFrame({"bm_monthly_mean_flow": np.nan}, index=data.index)
     for month in qbm.index.month.unique():
         qbm.loc[qbm.index.month == month, "bm_monthly_mean_flow"] = bm_vals[bm_vals.index == month].values
     return bm_vals, qbm
@@ -197,7 +198,7 @@ def bm_monthly_median_flow(data, cal_mask, streamflow="streamflow"):
 
     cal_set = data[streamflow].loc[cal_mask]
     bm_vals = cal_set.groupby(cal_set.index.month).median()
-    qbm = pd.DataFrame({"bm_monthly_median_flow": pd.NA}, index=data.index)
+    qbm = pd.DataFrame({"bm_monthly_median_flow": np.nan}, index=data.index)
     for month in qbm.index.month.unique():
         qbm.loc[qbm.index.month == month, "bm_monthly_median_flow"] = bm_vals[bm_vals.index == month].values
     return bm_vals, qbm
@@ -229,7 +230,7 @@ def bm_daily_mean_flow(data, cal_mask, streamflow="streamflow"):
     # data['mmdd'] = data.index.strftime('%m') + data.index.strftime('%d')
     cal_set = data[streamflow].loc[cal_mask]
     bm_vals = cal_set.groupby(cal_set.index.dayofyear).mean()  # Returns one value per day-of-year
-    qbm = pd.DataFrame({"bm_daily_mean_flow": pd.NA}, index=data.index)
+    qbm = pd.DataFrame({"bm_daily_mean_flow": np.nan}, index=data.index)
     for doy in qbm.index.dayofyear.unique():
         qbm.loc[qbm.index.dayofyear == doy, "bm_daily_mean_flow"] = bm_vals[bm_vals.index == doy].values
     return bm_vals, qbm
@@ -258,7 +259,7 @@ def bm_daily_median_flow(data, cal_mask, streamflow="streamflow"):
 
     cal_set = data[streamflow].loc[cal_mask]
     bm_vals = cal_set.groupby(cal_set.index.dayofyear).median()
-    qbm = pd.DataFrame({"bm_daily_median_flow": pd.NA}, index=data.index)
+    qbm = pd.DataFrame({"bm_daily_median_flow": np.nan}, index=data.index)
     for doy in qbm.index.dayofyear.unique():
         qbm.loc[qbm.index.dayofyear == doy, "bm_daily_median_flow"] = bm_vals[bm_vals.index == doy].values
     return bm_vals, qbm
@@ -299,7 +300,7 @@ def bm_rainfall_runoff_ratio_to_all(data, cal_mask, precipitation="precipitation
 
     cal_set = data.loc[cal_mask]
     bm_vals = cal_set[streamflow].sum() / cal_set[precipitation].sum()  # single rainfall-runoff ratio
-    qbm = pd.DataFrame({"bm_rainfall_runoff_ratio_to_all": pd.NA}, index=data.index)
+    qbm = pd.DataFrame({"bm_rainfall_runoff_ratio_to_all": np.nan}, index=data.index)
     qbm.loc[cal_mask] = bm_vals * data[precipitation].loc[cal_mask].mean()
     if len(cal_set.index) != len(
         data.index
@@ -334,7 +335,7 @@ def bm_rainfall_runoff_ratio_to_annual(data, cal_mask, precipitation="precipitat
 
     cal_set = data.loc[cal_mask]
     bm_vals = cal_set[streamflow].sum() / cal_set[precipitation].sum()  # single rainfall-runoff ratio
-    qbm = pd.DataFrame({"bm_rainfall_runoff_ratio_to_annual": pd.NA}, index=data.index)
+    qbm = pd.DataFrame({"bm_rainfall_runoff_ratio_to_annual": np.nan}, index=data.index)
     for year in qbm.index.year.unique():
         mean_annual_precip = data[precipitation].loc[data.index.year == year].mean()
         qbm.loc[qbm.index.year == year, "bm_rainfall_runoff_ratio_to_annual"] = bm_vals * mean_annual_precip
@@ -367,7 +368,7 @@ def bm_rainfall_runoff_ratio_to_monthly(data, cal_mask, precipitation="precipita
 
     cal_set = data.loc[cal_mask]
     bm_vals = cal_set[streamflow].sum() / cal_set[precipitation].sum()  # single rainfall-runoff ratio
-    qbm = pd.DataFrame({"bm_rainfall_runoff_ratio_to_monthly": pd.NA}, index=data.index)
+    qbm = pd.DataFrame({"bm_rainfall_runoff_ratio_to_monthly": np.nan}, index=data.index)
     for year in qbm.index.year.unique():  # for each year
         for month in qbm.loc[
             qbm.index.year == year
@@ -408,7 +409,7 @@ def bm_rainfall_runoff_ratio_to_daily(data, cal_mask, precipitation="precipitati
 
     cal_set = data.loc[cal_mask]
     bm_vals = cal_set[streamflow].sum() / cal_set[precipitation].sum()  # single rainfall-runoff ratio
-    qbm = pd.DataFrame({"bm_rainfall_runoff_ratio_to_daily": pd.NA}, index=data.index)
+    qbm = pd.DataFrame({"bm_rainfall_runoff_ratio_to_daily": np.nan}, index=data.index)
     for year in qbm.index.year.unique():  # for each year
         for doy in qbm.loc[
             qbm.index.year == year
@@ -480,7 +481,7 @@ def monthly_rainfall_runoff_ratio_to_monthly(
     monthly_mean_q = cal_set[streamflow].groupby(cal_set.index.month).mean()
     monthly_mean_p = cal_set[precipitation].groupby(cal_set.index.month).mean()
     bm_vals = monthly_mean_q / monthly_mean_p  # (at most) 12 rainfall-runoff ratios
-    qbm = pd.DataFrame({"bm_monthly_rainfall_runoff_ratio_to_monthly": pd.NA}, index=data.index)
+    qbm = pd.DataFrame({"bm_monthly_rainfall_runoff_ratio_to_monthly": np.nan}, index=data.index)
     for year in qbm.index.year.unique():  # for each year
         for month in qbm.loc[
             qbm.index.year == year
@@ -521,7 +522,7 @@ def monthly_rainfall_runoff_ratio_to_daily(data, cal_mask, precipitation="precip
     monthly_mean_q = cal_set[streamflow].groupby(cal_set.index.month).mean()
     monthly_mean_p = cal_set[precipitation].groupby(cal_set.index.month).mean()
     bm_vals = monthly_mean_q / monthly_mean_p  # (at most) 12 rainfall-runoff ratios
-    qbm = pd.DataFrame({"bm_monthly_rainfall_runoff_ratio_to_daily": pd.NA}, index=data.index)
+    qbm = pd.DataFrame({"bm_monthly_rainfall_runoff_ratio_to_daily": np.nan}, index=data.index)
     for year in qbm.index.year.unique():  # for each year
         for doy in qbm.loc[
             qbm.index.year == year
@@ -941,7 +942,7 @@ def evaluate_bm(data, benchmark_flow, metric, cal_mask, val_mask=None, streamflo
     cal_score = calculate_metric(cal_obs.values.flatten(), cal_sim.values.flatten(), metric, ignore_nan=ignore_nan)
 
     # Calculate the evaluation score if a mask is provided
-    val_score = pd.NA
+    val_score = np.nan
     if val_mask is not None:
         # Catch the case where we have an annual mean or median benchmark.
         # We cannot use these for prediction so the benchmark dataframe will
