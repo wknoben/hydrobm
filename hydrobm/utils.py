@@ -1,11 +1,102 @@
 import numpy as np
+from scipy.optimize import Bounds, minimize, minimize_scalar  # differential_evolution,
 
 from .metrics import mse
 
+# --- Wrapper functions for adjusted precipitation benchmark
+# and adjusted smoothed precipitation benchmark optimization
 
-# Basic optimization routine for lagged precipitation benchmark
-def optimize_lag(scaled_precip, streamflow, max_lag=30):
-    """Optimize the lag for a lagged precipitation benchmark model.
+
+# Wrapper for adjusted precipitation benchmark optimization
+def optimize_apb(scaled_precip, streamflow, method, max_lag=30):
+    """Wrapper function around adjusted precipitation benchmark model optimization functions.
+
+    Parameters
+    ----------
+    scaled_precip : pandas Series
+        Scaled precipitation data.
+    streamflow : pandas Series
+        Streamflow data.
+    method : str
+        Optimization method to use. Currently supports "brute_force" and "minimize".
+    max_lag : int, optional
+        Maximum lag to consider. Default is 30.
+
+    Returns
+    -------
+    best_lag : int
+        Best lag value.
+    best_mse : float
+        Best mean squared error value.
+    """
+
+    # Check that the method is valid
+    if method not in ["brute_force", "minimize", "differential_evolution"]:
+        raise ValueError(f"Invalid optimization method specified for optimize_lag: {method}.")
+
+    # Brute force optimization
+    if method == "brute_force":
+        best_lag, best_mse = brute_force_apb(scaled_precip, streamflow, max_lag)
+
+    # Minimize scalar optimization
+    elif method == "minimize":
+        best_lag, best_mse = minimize_scalar_apb(scaled_precip, streamflow, max_lag)
+
+    # # Differential evolution optimization
+    # elif method == "differential_evolution":
+    #     best_lag, best_mse = differential_evolution_apb(scaled_precip, streamflow, max_lag)
+
+    return best_lag, best_mse
+
+
+# Wrapper for adjusted smoothed precipitation benchmark optimization
+def optimize_aspb(scaled_precip, streamflow, method, max_lag=30, max_window=90):
+    """Wrapper function around adjusted smoothed precipitation benchmark model optimization functions.
+
+    Parameters
+    ----------
+    scaled_precip : pandas Series
+        Scaled precipitation data.
+    streamflow : pandas Series
+        Streamflow data.
+    method : str
+        Optimization method to use. Currently supports "brute_force" and "minimize".
+    max_lag : int, optional
+        Maximum lag to consider. Default is 30.
+    max_window: int, optional
+        Maximum smoothing window length to consider. Default is 90.
+
+    Returns
+    -------
+    best_lag : int
+        Best lag value.
+    best_window: int
+        Best window value.
+    best_mse : float
+        Best mean squared error value.
+    """
+
+    # Check that the method is valid
+    if method not in ["brute_force", "minimize"]:
+        raise ValueError(f"Invalid optimization method specified for optimize_lag: {method}.")
+
+    # Brute force optimization
+    if method == "brute_force":
+        best_lag, best_window, best_mse = brute_force_aspb(scaled_precip, streamflow, max_lag, max_window)
+
+    # Minimize scalar optimization
+    elif method == "minimize":
+        best_lag, best_window, best_mse = minimize_aspb(scaled_precip, streamflow, max_lag, max_window)
+
+    return best_lag, best_window, best_mse
+
+
+# --- Optimization functions for adjusted precipitation benchmark (APB)
+
+
+# Basic brute force optimization routine for adjusted precipitation benchmark
+def brute_force_apb(scaled_precip, streamflow, max_lag=30):
+    """Optimize the lag for the adjusted precipitation benchmark model using brute force.
 
     Parameters
     ----------
@@ -22,12 +113,6 @@ def optimize_lag(scaled_precip, streamflow, max_lag=30):
         Best lag value.
     best_mse : float
         Best mean squared error value.
-
-    Notes
-    -----
-    Equally good as scipy.optimize.minimize_scalar with added rounding, but
-    much slower. Keeping as a record of the attempt in case we want to revisit
-    the optimization part of adjusted_lagged_precipitation_benchmark().
     """
 
     # Initialize the best lag and MSE
@@ -50,9 +135,91 @@ def optimize_lag(scaled_precip, streamflow, max_lag=30):
     return best_lag, best_mse
 
 
-# Basic optimization routine for lagged, smoothed precipitation benchmark
-def optimize_aspb(scaled_precip, streamflow, max_lag=30, max_window=90):
-    """Optimize the lag for a lagged smoothed precipitation benchmark model.
+# minimize_scalar optimization routine for adjusted precipitation benchmark
+def minimize_scalar_apb(scaled_precip, streamflow, max_lag=30):
+    """Optimize the lag for the adjusted precipitation benchmark model using scipy.optimize.minimize_scalar.
+
+    Parameters
+    ----------
+    scaled_precip : pandas Series
+        Scaled precipitation data.
+    streamflow : pandas Series
+        Streamflow data.
+    max_lag : int, optional
+        Maximum lag to consider. Default is 30.
+
+    Returns
+    -------
+    best_lag : int
+        Best lag value.
+    best_mse : float
+        Best mean squared error value.
+
+    Notes
+    -----
+    scipy.optimize.minimize_scalar is not designed for use with integer-only solutions. Here we
+    use the round function to enforce integer solutions. This seems to work in practice, but
+    user caution is advised. Use brute force optimization if 100% accurate solutions are required.
+    """
+
+    # Define the optimization function
+    def mse_apb(lag):
+        lag = round(lag)  # ensures integer
+        apb = scaled_precip.shift(lag)
+        return mse(apb, streamflow)
+
+    # Run the optimization
+    bounds = (0, max_lag - 1)  # minimize_scalar only accepts bounds as a tuple, not as Bounds class
+    res = minimize_scalar(mse_apb, bounds=bounds, method="bounded")
+
+    # Extract the best lag and MSE
+    best_lag = round(res.x)
+    best_mse = res.fun
+
+    return best_lag, best_mse
+
+
+# # differential_evolution optimization routine for adjusted precipitation benchmark
+# def differential_evolution_apb(scaled_precip, streamflow, max_lag=30):
+#     # Define the optimization function
+#     def mse_apb(lag):
+#         apb = scaled_precip.shift(lag)  # lag as integer enforced elsewhere
+#         return mse(apb, streamflow)
+
+#     # Custom integer mutation function
+#     def integer_mutation(xk, **kwargs):
+#         xk_new = np.round(xk).astype(int)
+#         return xk_new
+
+#     # Run the optimization
+#     bounds = Bounds(0, max_lag - 1)  # Bounds([lower], [upper])
+#     bounds = [(0, max_lag - 1)]
+#     res = differential_evolution(
+#         mse,
+#         bounds,
+#         args=(obs,),
+#         strategy="best1bin",
+#         mutation=(0.5, 1),
+#         recombination=0.7,
+#         tol=0.01,
+#         seed=42,
+#         workers=1,
+#         updating="deferred",
+#         disp=True,
+#         polish=False,
+#         init="random",
+#         callback=integer_mutation,
+#     )
+
+#     return "Not implemented yet"
+
+
+# --- Optimization functions for adjusted smoothed precipitation benchmark (ASPB)
+
+
+# Basic brute force optimization routine for adjusted smoothed precipitation benchmark
+def brute_force_aspb(scaled_precip, streamflow, max_lag=30, max_window=90):
+    """Optimize the lag and window for adjusted smoothed precipitation benchmark model using brute force.
 
     Parameters
     ----------
@@ -73,11 +240,6 @@ def optimize_aspb(scaled_precip, streamflow, max_lag=30, max_window=90):
         Best window value.
     best_mse : float
         Best mean squared error value.
-
-    Notes
-    -----
-    Implemented because scipy.optimize.minimize seems to struggle with
-    integer-only solutions, and searching docs is hard.
     """
 
     # Initialize an array to store MSE scores
@@ -101,7 +263,65 @@ def optimize_aspb(scaled_precip, streamflow, max_lag=30, max_window=90):
     return best_lag, best_window, best_mse
 
 
-# Basic snow accumulation and melt model
+# minimize optimization routine for adjusted precipitation benchmark
+def minimize_aspb(scaled_precip, streamflow, max_lag=30, max_window=90, method="Powell"):
+    """Optimize the lag and window for the ASPB model using scipy.optimize.minimize.
+
+    Parameters
+    ----------
+    scaled_precip : pandas Series
+        Scaled precipitation data.
+    streamflow : pandas Series
+        Streamflow data.
+    max_lag : int, optional
+        Maximum lag to consider. Default is 30.
+    max_window: int, optional
+        Maximum smoothing window length to consider. Default is 90.
+    method: str, optional
+        Optimization method to use. Default is 'Powell'. See scipy.optimize.minimize for more options.
+
+    Returns
+    -------
+    best_lag : int
+        Best lag value.
+    best_window: int
+        Best window value.
+    best_mse : float
+        Best mean squared error value.
+
+    Notes
+    -----
+    scipy.optimize.minimize is not designed for use with integer-only solutions. Here we
+    use the round function to enforce integer solutions. The 'Powell' optimization method
+    seems to return appropriate lag and window values in most real cases, but user caution
+    is advised. Use brute force optimization if 100% accurate solutions are required.
+    """
+
+    # Define the optimization function
+    def mse_aspb(params):
+        lag, window = params
+        lag = round(lag)  # ensures integer
+        window = round(window)
+
+        # Calculate the adjusted smoothed precipitation benchmark
+        aspb = scaled_precip.shift(lag).rolling(window=window).mean()
+        return mse(aspb, streamflow)
+
+    # Run the optimization
+    init = [0, 1]  # initial guess for lag and window
+    bounds = Bounds([0, 1], [max_lag - 1, max_window - 1])
+    res = minimize(mse_aspb, init, bounds=bounds, method=method)
+
+    # Extract the best lag, window, and MSE
+    best_lag, best_window = res.x.round()
+    best_mse = res.fun
+
+    return int(best_lag), int(best_window), best_mse
+
+
+# --- Snow accumulation and melt model
+
+
 def rain_to_melt(
     data, precipitation="precipitation", temperature="temperature", snow_and_melt_temp=0.0, snow_and_melt_rate=3.0
 ):

@@ -17,6 +17,7 @@ def calc_bm(
     # Benchmark choices
     benchmarks=["daily_mean_flow"],
     metrics=["rmse"],
+    optimization_method="minimize",
     # Snow model inputs
     calc_snowmelt=False,
     temperature="temperature",
@@ -41,6 +42,8 @@ def calc_bm(
         List of benchmark models to calculate. Default is ['daily_mean_flow'].
     metrics : list, optional
         List of metrics to calculate. Default is ['rmse'].
+    optimization_method : str, optional
+        Optimization method to use for benchmark model calibration. Default is 'minimize'.
     calc_snowmelt : bool, optional
         Flag to run a basic snow accumulation and melt model. Default is False.
     temperature : str, optional
@@ -107,6 +110,7 @@ def calc_bm(
             cal_mask,
             precipitation=precipitation,
             streamflow=streamflow,
+            optimization_method=optimization_method,
         )  # Create the benchmark flow for calibration period
         benchmark_flow_list.append(qbm)
 
@@ -122,25 +126,3 @@ def calc_bm(
         results.update({metric + "_cal": cal_scores, metric + "_val": val_scores})
 
     return pd.concat(benchmark_flow_list, axis=1), results
-
-
-"""
-For the future:
-
-    # Run the requested benchmarks
-    for metric in metrics:
-        cal_scores = []
-        val_scores = []
-        for benchmark in benchmarks:
-            # Create the benchmark flow for calibration period
-            qbm = benchmarks.create_bm(data, benchmark, precipitation, streamflow, cal_mask)
-            [cal_score,val_score] = benchmarks.evaluate_bm(data, qbm, metric, cal_mask, val_mask)
-
-            benchmark_flow_list.append(qbm)
-            cal_scores.append(cal_score)
-            val_scores.append(val_score)
-
-        metrics.update({metric+'_cal': cal_scores, metric+'_val': val_scores})
-    benchmark_flows = pd.concat(benchmark_flow_list, axis=1)
-    return benchmark_flows, metrics
-"""

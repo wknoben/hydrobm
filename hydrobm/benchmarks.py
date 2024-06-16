@@ -1,9 +1,8 @@
 import numpy as np
 import pandas as pd
-from scipy.optimize import minimize_scalar
 
-from .metrics import calculate_metric, mse
-from .utils import optimize_aspb
+from .metrics import calculate_metric
+from .utils import optimize_apb, optimize_aspb
 
 # from scipy.optimize import Bounds, minimize, minimize_scalar
 
@@ -92,19 +91,19 @@ def bm_annual_mean_flow(data, cal_mask, streamflow="streamflow"):
     Notes
     -----
     This benchmark cannot be used to predict unseen data, because the
-    years don't repeat.
+    years don't repeat. This function will return a ebnchmark time series
+    that has the same length as the input data, but only the calculation
+    period will have values. The rest will be NaNs.
     """
     cal_set = data[streamflow].loc[cal_mask]
     bm_vals = cal_set.groupby(cal_set.index.year).mean()  # Returns one value per year
-    # qbm = pd.DataFrame(
-    #     {"bm_annual_mean_flow": np.nan}, index=cal_set.index
-    # )  # Initialize an empty dataframe with the right number of time steps
-    # for year in qbm.index.year.unique():  # TO DO: check if there is a cleaner way to do this
-    #     qbm.loc[qbm.index.year == year, "bm_annual_mean_flow"] = bm_vals[bm_vals.index == year].values
-    qbm = pd.DataFrame(
-        {"bm_annual_mean_flow": np.nan}, index=data.index
-    )  # Initialize an empty dataframe with the right number of time steps
-    for year in bm_vals.index:  # TO DO: check if there is a cleaner way to do this
+
+    # Initialize an empty dataframe for the full time series, even if we can only
+    # calculate this particular benchmark for the calculation period. That way we
+    # can at least guarantee that the output has the right shape. Evaluation period
+    # will be all NaNs.
+    qbm = pd.DataFrame({"bm_annual_mean_flow": np.nan}, index=data.index)
+    for year in bm_vals.index:
         qbm.loc[qbm.index.year == year, "bm_annual_mean_flow"] = bm_vals[bm_vals.index == year].values
     return bm_vals, qbm
 
@@ -132,14 +131,18 @@ def bm_annual_median_flow(data, cal_mask, streamflow="streamflow"):
     Notes
     -----
     This benchmark cannot be used to predict unseen data, because the
-    years don't repeat.
+    years don't repeat. This function will return a ebnchmark time series
+    that has the same length as the input data, but only the calculation
+    period will have values. The rest will be NaNs.
     """
 
     cal_set = data[streamflow].loc[cal_mask]
     bm_vals = cal_set.groupby(cal_set.index.year).median()
-    # qbm = pd.DataFrame({"bm_annual_median_flow": np.nan}, index=cal_set.index)
-    # for year in qbm.index.year.unique():
-    #     qbm.loc[qbm.index.year == year, "bm_annual_median_flow"] = bm_vals[bm_vals.index == year].values
+
+    # Initialize an empty dataframe for the full time series, even if we can only
+    # calculate this particular benchmark for the calculation period. That way we
+    # can at least guarantee that the output has the right shape. Evaluation period
+    # will be all NaNs.
     qbm = pd.DataFrame({"bm_annual_median_flow": np.nan}, index=data.index)
     for year in bm_vals.index:
         qbm.loc[qbm.index.year == year, "bm_annual_median_flow"] = bm_vals[bm_vals.index == year].values
@@ -617,7 +620,9 @@ def scaled_precipitation_benchmark(data, cal_mask, precipitation="precipitation"
     return bm_vals, qbm
 
 
-def adjusted_precipitation_benchmark(data, cal_mask, precipitation="precipitation", streamflow="streamflow"):
+def adjusted_precipitation_benchmark(
+    data, cal_mask, precipitation="precipitation", streamflow="streamflow", optimization_method="brute_force"
+):
     """Calculate the adjusted precipitation benchmark model as a predictor
     of runoff-from-precipitation for each timestep in the whole dataframe.
 
@@ -631,6 +636,8 @@ def adjusted_precipitation_benchmark(data, cal_mask, precipitation="precipitatio
         Name of the precipitation column in the input data. Default is ['precipitation'].
     streamflow : str, optional
         Name of the streamflow column in the input data. Default is ['streamflow'].
+    optimize_method : str, optional
+        Optimization method to use. Default is ['brute_force']. See optimize_apb() for further options.
 
     Returns
     -------
@@ -641,41 +648,34 @@ def adjusted_precipitation_benchmark(data, cal_mask, precipitation="precipitatio
         Computed as long-term RRR multiplied by precipitation at each timestep,
         lagged for a number of timesteps that minimizes MSE (Schaefli & Gupta, 2007).
 
-
     References
     ----------
     Schaefli, B. and Gupta, H.V. (2007), Do Nash values have value?.
     Hydrol. Process., 21: 2075-2080. https://doi.org/10.1002/hyp.6825
     """
 
+    # Calculate the rainfall-scaling
     cal_set = data.loc[cal_mask]
     bm_vals = cal_set[streamflow].sum() / cal_set[precipitation].sum()  # single rainfall-runoff ratio
-
-    # minimize MSE between observed and predicted streamflow
-    # < TO DO >: something cleverer than "round(lag)" to enforce integers,
-    # but for the moment this may be good enough
-    def apb(lag):
-        lag = round(lag)
-        apb = bm_vals * cal_set[precipitation].shift(lag)
-        return apb
-
-    def mse_apb(lag):
-        return mse(apb(lag), cal_set[streamflow])
 
     # Find the maximum lag value to avoid shifting the data too much (1 year max seems reasonable)
     max_lag = data.groupby(data.index.year).size().iloc[0]  # group by year and get the size of the first group
 
-    # Optimize
-    res = minimize_scalar(mse_apb, bounds=(0, max_lag - 1), method="bounded")
-    lag = round(res.x)  # optimal lag value, rounded to a whole timestep as in mse_lagged_precipitation
+    # Optimize the lag by minimizing MSE between observed and predicted streamflow
+    lag, _ = optimize_apb(
+        bm_vals * cal_set[precipitation], cal_set[streamflow], optimization_method, max_lag=max_lag
+    )
+
+    # Calculate the adjusted precipitation benchmark
     qbm = pd.DataFrame(
         {"bm_adjusted_precipitation_benchmark": bm_vals * data[precipitation].shift(lag)}, index=data.index
     )
+
     return bm_vals, qbm
 
 
 def adjusted_smoothed_precipitation_benchmark(
-    data, cal_mask, precipitation="precipitation", streamflow="streamflow"
+    data, cal_mask, precipitation="precipitation", streamflow="streamflow", optimization_method="brute_force"
 ):
     """Calculate the adjusted smoothed precipitation benchmark model as a predictor
     of runoff-from-precipitation for each timestep in the whole dataframe.
@@ -690,6 +690,8 @@ def adjusted_smoothed_precipitation_benchmark(
         Name of the precipitation column in the input data. Default is ['precipitation'].
     streamflow : str, optional
         Name of the streamflow column in the input data. Default is ['streamflow'].
+    optimization_method : str, optional
+        Optimization method to use. Default is ['brute_force']. See optimize_aspb() for further options.
 
     Returns
     -------
@@ -706,51 +708,94 @@ def adjusted_smoothed_precipitation_benchmark(
     Hydrol. Process., 21: 2075-2080. https://doi.org/10.1002/hyp.6825
     """
 
+    # Calculate the rainfall-scaling
     cal_set = data.loc[cal_mask]
     bm_vals = cal_set[streamflow].sum() / cal_set[precipitation].sum()  # single rainfall-runoff ratio
-    # minimize MSE between observed and predicted streamflow
-
-    # < TO DO >: figure out if we can make scipy minimize with integers only
-    # because our current approach is a bit slow. Initial attempt below but
-    # this is not very robust. It works on the simple test cases but fails to
-    # search the longer space provided by real data.
-    def aspb(lag, window):
-        lag = round(lag)
-        window = round(window)
-        aspb = (
-            bm_vals * data[precipitation].shift(lag).rolling(window=window).mean()
-        )  # This defaults to a left window
-        return aspb
-
-    # def mse_aspb(params):
-    #     lag, window = params
-    #     return mse(aspb(lag, window), cal_set[streamflow])
 
     # Find the maximum lag value to avoid shifting the data too much (1 year max seems reasonable)
     timesteps_per_year = (
         data.groupby(data.index.year).size().iloc[0]
     )  # group by year and get the size of the first group
 
-    # # We need Nelder-Mead (or similar) here because the gradients are messed up due
-    # to the round-to-integer we do. Not theoretically optimal but seems fast enough.
-    # res = minimize(mse_aspb, [0, 1], bounds=[(0,timesteps_per_year-1),(1,timesteps_per_year-1)], method='Powell')
-    # lag,window = res.x.round()
-
-    # Optimize
+    # Optimize the lag and window by minimizing MSE between observed and predicted streamflow
     lag, window, _ = optimize_aspb(
         bm_vals * cal_set[precipitation],
         cal_set[streamflow],
+        optimization_method,
         max_lag=timesteps_per_year - 1,
         max_window=timesteps_per_year - 1,
     )
-    qbm = pd.DataFrame({"bm_adjusted_smoothed_precipitation_benchmark": aspb(lag, window)}, index=data.index)
+
+    # Calculate the adjusted smoothed precipitation benchmark
+    qbm = pd.DataFrame(
+        {
+            "bm_adjusted_smoothed_precipitation_benchmark": bm_vals
+            * data[precipitation].shift(lag).rolling(window=window).mean()
+        },
+        index=data.index,
+    )
+
     return bm_vals, qbm
+
+    """
+        import numpy as np
+        from scipy.optimize import differential_evolution
+
+        # Example function fn. Replace this with your actual function.
+        def fn(lag, window):
+            # Example implementation (replace with actual function logic)
+            return np.sin(lag) + np.cos(window)
+
+        # Observations (replace with your actual observations)
+        obs = np.array([1.0, 2.0, 3.0, 4.0])
+
+        # Define the MSE function
+        def mse(params, obs):
+            lag, window = params
+            predictions = fn(lag, window)
+            return np.mean((predictions - obs) ** 2)
+
+        # Custom integer mutation function
+        def integer_mutation(xk, **kwargs):
+            xk_new = np.round(xk).astype(int)
+            return xk_new
+
+        # Bounds for lag and window (set appropriate bounds)
+        bounds = [(0, 10), (0, 10)]  # Example bounds; adjust as needed
+
+        # Perform the optimization
+        result = differential_evolution(mse,
+                                        bounds,
+                                        args=(obs,),
+                                        strategy='best1bin',
+                                        mutation=(0.5, 1),
+                                        recombination=0.7,
+                                        tol=0.01,
+                                        seed=42,
+                                        workers=1,
+                                        updating='deferred',
+                                        disp=True,
+                                        polish=False,
+                                        init='random',
+                                        callback=integer_mutation)
+
+        # Output the result
+        optimal_lag = int(result.x[0])
+        optimal_window = int(result.x[1])
+    """
 
 
 # --- Benchmark creation and evaluation ---
 
 
-def create_bm(data, benchmark, cal_mask, precipitation="precipitation", streamflow="streamflow"):
+def create_bm(
+    data,
+    benchmark,
+    cal_mask,
+    precipitation="precipitation",
+    streamflow="streamflow",
+    optimization_method="minimize",
+):
     """Helper function to call the correct benchmark model function;
     makes looping over benchmark models easier.
 
@@ -766,6 +811,8 @@ def create_bm(data, benchmark, cal_mask, precipitation="precipitation", streamfl
         Name of the precipitation column in the input data. Default is ['precipitation'].
     streamflow : str, optional
         Name of the streamflow column in the input data. Default is ['streamflow'].
+    optimization_method : str, optional
+        Optimization method to create adjusted (snoothed) precipitation benchmark. Default is ['minimize'].
 
     Returns
     -------
@@ -889,12 +936,20 @@ def create_bm(data, benchmark, cal_mask, precipitation="precipitation", streamfl
 
     elif benchmark == "adjusted_precipitation_benchmark":
         bm_vals, qbm = adjusted_precipitation_benchmark(
-            data, cal_mask, precipitation=precipitation, streamflow=streamflow
+            data,
+            cal_mask,
+            precipitation=precipitation,
+            streamflow=streamflow,
+            optimization_method=optimization_method,
         )
 
     elif benchmark == "adjusted_smoothed_precipitation_benchmark":
         bm_vals, qbm = adjusted_smoothed_precipitation_benchmark(
-            data, cal_mask, precipitation=precipitation, streamflow=streamflow
+            data,
+            cal_mask,
+            precipitation=precipitation,
+            streamflow=streamflow,
+            optimization_method=optimization_method,
         )
 
     # End of benchmark definitions
