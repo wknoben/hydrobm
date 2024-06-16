@@ -354,10 +354,14 @@ def test_adjusted_precipitation_benchmark():
 
 def test_adjusted_smoothed_precipitation_benchmark():
     # Test 1: check if we find the known optimum lag and smoothing (2,3)
-    dates = pd.date_range("2001-01-01", periods=7, freq="D")
-    data = pd.DataFrame({"precipitation": [0, 0, 6, 0, 0, 0, 0], "streamflow": [0, 0, 0, 0, 1, 1, 1]}, index=dates)
+    dates = pd.date_range("2001-01-01", periods=10, freq="D")
+    data = pd.DataFrame(
+        {"precipitation": [0, 0, 6, 0, 0, 0, 0, 0, 0, 0], "streamflow": [0, 0, 0, 0, 1, 1, 1, 0, 0, 0]},
+        index=dates,
+    )
     expected_output = pd.DataFrame(
-        {"bm_adjusted_smoothed_precipitation_benchmark": [np.nan, np.nan, np.nan, np.nan, 1, 1, 1]}, index=dates
+        {"bm_adjusted_smoothed_precipitation_benchmark": [np.nan, np.nan, np.nan, np.nan, 1, 1, 1, 0, 0, 0]},
+        index=dates,
     )
     cal_mask = data.index
     bm_v, bm_t = create_bm(data, "adjusted_smoothed_precipitation_benchmark", cal_mask)
