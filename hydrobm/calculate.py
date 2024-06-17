@@ -17,7 +17,7 @@ def calc_bm(
     # Benchmark choices
     benchmarks=["daily_mean_flow"],
     metrics=["rmse"],
-    optimization_method="minimize",
+    optimization_method="brute_force",
     # Snow model inputs
     calc_snowmelt=False,
     temperature="temperature",
@@ -43,7 +43,7 @@ def calc_bm(
     metrics : list, optional
         List of metrics to calculate. Default is ['rmse'].
     optimization_method : str, optional
-        Optimization method to use for benchmark model calibration. Default is 'minimize'.
+        Optimization method to use for benchmark model calibration. Default is 'brute_force'.
     calc_snowmelt : bool, optional
         Flag to run a basic snow accumulation and melt model. Default is False.
     temperature : str, optional
