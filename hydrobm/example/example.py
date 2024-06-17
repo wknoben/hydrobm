@@ -22,7 +22,7 @@ cal_mask = data["date"].values < np.datetime64("1999-01-01")
 val_mask = ~cal_mask
 
 # Specify the benchmarks and metrics to calculate
-benchmarks = [
+benchmarks_to_calculate = [
     # Streamflow benchmarks
     "mean_flow",
     "median_flow",
@@ -58,8 +58,9 @@ benchmarks, scores = calc_bm(
     # Variable names in 'data'
     precipitation="total_precipitation_sum",
     streamflow="streamflow",
+    optimization_method="brute_force",
     # Benchmark choices
-    benchmarks=benchmarks,
+    benchmarks=benchmarks_to_calculate,
     metrics=metrics,
     # Snow model inputs
     calc_snowmelt=True,
