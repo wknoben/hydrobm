@@ -158,8 +158,9 @@ def minimize_scalar_apb(scaled_precip, streamflow, max_lag=30):
     Notes
     -----
     scipy.optimize.minimize_scalar is not designed for use with integer-only solutions. Here we
-    use the round function to enforce integer solutions. This seems to work in practice, but
-    user caution is advised. Use brute force optimization if 100% accurate solutions are required.
+    use the round function to enforce integer solutions. This seems to work for simple test cases,
+    but results for real data may vary. User caution is advised. Use brute force optimization if
+    100% accurate solutions are required.
     """
 
     # Define the optimization function
@@ -293,8 +294,9 @@ def minimize_aspb(scaled_precip, streamflow, max_lag=30, max_window=90, method="
     -----
     scipy.optimize.minimize is not designed for use with integer-only solutions. Here we
     use the round function to enforce integer solutions. The 'Powell' optimization method
-    seems to return appropriate lag and window values in most real cases, but user caution
-    is advised. Use brute force optimization if 100% accurate solutions are required.
+    seems to return appropriate lag and window values in simple test cases, but results
+    for real data may vary. User caution is advised. Use brute force optimization if 100%
+    accurate solutions are required.
     """
 
     # Define the optimization function
