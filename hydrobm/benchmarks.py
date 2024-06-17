@@ -330,7 +330,7 @@ def bm_rainfall_runoff_ratio_to_annual(data, cal_mask, precipitation="precipitat
     Returns
     -------
     bm_vals: pandas DataSeries
-        Annual rainfall-runoff ratio values for the calculation period.
+        Rainfall-runoff ratio value for the calculation period.
     qbm : pandas DataFrame
         Benchmark flow time series for the annual rainfall-runoff ratio (RRR) benchmark model.
         Computed as long-term RRR multiplied by annual mean precipitation.
@@ -363,7 +363,7 @@ def bm_rainfall_runoff_ratio_to_monthly(data, cal_mask, precipitation="precipita
     Returns
     -------
     bm_vals: pandas DataSeries
-        Monthly rainfall-runoff ratio values for the calculation period.
+        Rainfall-runoff ratio value for the calculation period.
     qbm : pandas DataFrame
         Benchmark flow time series for the monthly rainfall-runoff ratio (RRR) benchmark model.
         Computed as long-term RRR multiplied by monthly mean precipitation.
@@ -404,7 +404,7 @@ def bm_rainfall_runoff_ratio_to_daily(data, cal_mask, precipitation="precipitati
     Returns
     -------
     bm_vals: pandas DataSeries
-        Daily rainfall-runoff ratio values for the calculation period.
+        Rainfall-runoff ratio value for the calculation period.
     qbm : pandas DataFrame
         Benchmark flow time series for the daily rainfall-runoff ratio (RRR) benchmark model.
         Computed as long-term RRR multiplied by daily mean precipitation.
@@ -641,8 +641,8 @@ def adjusted_precipitation_benchmark(
 
     Returns
     -------
-    bm_vals: float
-        Rainfall-runoff ratio value for the calculation period.
+    bm_vals: tuple
+        Rainfall-runoff ratio value for the calculation period and the optimized lag value.
     qbm : pandas DataFrame
         Benchmark flow time series for the adjusted precipitation benchmark model.
         Computed as long-term RRR multiplied by precipitation at each timestep,
@@ -671,6 +671,9 @@ def adjusted_precipitation_benchmark(
         {"bm_adjusted_precipitation_benchmark": bm_vals * data[precipitation].shift(lag)}, index=data.index
     )
 
+    # Add the lag as an output
+    bm_vals = (bm_vals, lag)
+
     return bm_vals, qbm
 
 
@@ -695,8 +698,8 @@ def adjusted_smoothed_precipitation_benchmark(
 
     Returns
     -------
-    bm_vals: float
-        Rainfall-runoff ratio value for the calculation period.
+    bm_vals: tuple
+        Rainfall-runoff ratio value for the calculation period and the optimized lag and window values.
     qbm : pandas DataFrame
         Benchmark flow time series for the adjusted smoothed precipitation benchmark model.
         Computed as long-term RRR multiplied by precipitation at each timestep,
@@ -734,6 +737,9 @@ def adjusted_smoothed_precipitation_benchmark(
         },
         index=data.index,
     )
+
+    # Add the lag and window as an output
+    bm_vals = (bm_vals, lag, window)
 
     return bm_vals, qbm
 
@@ -794,7 +800,7 @@ def create_bm(
     cal_mask,
     precipitation="precipitation",
     streamflow="streamflow",
-    optimization_method="minimize",
+    optimization_method="brute_force",
 ):
     """Helper function to call the correct benchmark model function;
     makes looping over benchmark models easier.
@@ -812,7 +818,7 @@ def create_bm(
     streamflow : str, optional
         Name of the streamflow column in the input data. Default is ['streamflow'].
     optimization_method : str, optional
-        Optimization method to create adjusted (snoothed) precipitation benchmark. Default is ['minimize'].
+        Optimization method to create adjusted (snoothed) precipitation benchmark. Default is ['brute_force'].
 
     Returns
     -------

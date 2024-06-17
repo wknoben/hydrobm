@@ -348,7 +348,8 @@ def test_adjusted_precipitation_benchmark():
     expected_output = pd.DataFrame({"bm_adjusted_precipitation_benchmark": [np.nan, np.nan, 1, 0, 0]}, index=dates)
     cal_mask = data.index
     bm_v, bm_t = create_bm(data, "adjusted_precipitation_benchmark", cal_mask)
-    assert np.isclose(bm_v, 0.5), "Failed adjusted precipitation benchmark T1a."
+    assert np.isclose(bm_v[0], 0.5), "Failed adjusted precipitation benchmark T1a."
+    assert np.isclose(bm_v[1], 2), "Failed adjusted precipitation benchmark T1b."
     pd.testing.assert_frame_equal(bm_t, expected_output, check_dtype=False)
 
 
@@ -365,7 +366,9 @@ def test_adjusted_smoothed_precipitation_benchmark():
     )
     cal_mask = data.index
     bm_v, bm_t = create_bm(data, "adjusted_smoothed_precipitation_benchmark", cal_mask)
-    assert np.isclose(bm_v, 0.5), "Failed adjusted smoothed precipitation benchmark T1a."
+    assert np.isclose(bm_v[0], 0.5), "Failed adjusted smoothed precipitation benchmark T1a."
+    assert np.isclose(bm_v[1], 2), "Failed adjusted smoothed precipitation benchmark T1b."
+    assert np.isclose(bm_v[2], 3), "Failed adjusted smoothed precipitation benchmark T1c."
     pd.testing.assert_frame_equal(bm_t, expected_output, check_dtype=False)
 
 
