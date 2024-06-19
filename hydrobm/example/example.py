@@ -111,5 +111,5 @@ plt.show()
 col_names = scores.pop("benchmarks", None)
 df = pd.DataFrame(scores, index=col_names)
 df = df.T
-df.to_csv("scores.csv")
-benchmarks.to_csv("benchmarks_flows.csv")
+df.to_csv("benchmark_scores.csv")
+benchmarks.to_csv("benchmark_flows.csv")
