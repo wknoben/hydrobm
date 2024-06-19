@@ -1,6 +1,7 @@
 # Example use of HydroBM
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import xarray as xr
 
 from hydrobm.calculate import calc_bm
@@ -102,6 +103,13 @@ for i, (bm, kge) in enumerate(zip(top_benchmarks, top_kge_vals)):
     ax[i].set_title(f"{bm} (KGE: {kge:.2f})")
     ax[i].set_xlabel("")  # drops 'Date'
 
-
 plt.tight_layout()
 plt.show()
+
+
+# Save the benchmark models and scores
+col_names = scores.pop("benchmarks", None)
+df = pd.DataFrame(scores, index=col_names)
+df = df.T
+df.to_csv("scores.csv")
+benchmarks.to_csv("benchmarks_flows.csv")
