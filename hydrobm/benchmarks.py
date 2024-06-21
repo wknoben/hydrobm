@@ -174,7 +174,8 @@ def bm_monthly_mean_flow(data, cal_mask, streamflow="streamflow"):
     bm_vals = cal_set.groupby(cal_set.index.month).mean()  # Returns one value per month in the index
     qbm = pd.DataFrame({"bm_monthly_mean_flow": np.nan}, index=data.index)
     for month in qbm.index.month.unique():
-        qbm.loc[qbm.index.month == month, "bm_monthly_mean_flow"] = bm_vals[bm_vals.index == month].values
+        if month in bm_vals.index: # takes care of cases where for some reason we have no cal data for this month
+            qbm.loc[qbm.index.month == month, "bm_monthly_mean_flow"] = bm_vals[bm_vals.index == month].values
     return bm_vals, qbm
 
 
@@ -203,7 +204,8 @@ def bm_monthly_median_flow(data, cal_mask, streamflow="streamflow"):
     bm_vals = cal_set.groupby(cal_set.index.month).median()
     qbm = pd.DataFrame({"bm_monthly_median_flow": np.nan}, index=data.index)
     for month in qbm.index.month.unique():
-        qbm.loc[qbm.index.month == month, "bm_monthly_median_flow"] = bm_vals[bm_vals.index == month].values
+        if month in bm_vals.index: # takes care of cases where for some reason we have no cal data for this month
+            qbm.loc[qbm.index.month == month, "bm_monthly_median_flow"] = bm_vals[bm_vals.index == month].values
     return bm_vals, qbm
 
 
@@ -235,7 +237,8 @@ def bm_daily_mean_flow(data, cal_mask, streamflow="streamflow"):
     bm_vals = cal_set.groupby(cal_set.index.dayofyear).mean()  # Returns one value per day-of-year
     qbm = pd.DataFrame({"bm_daily_mean_flow": np.nan}, index=data.index)
     for doy in qbm.index.dayofyear.unique():
-        qbm.loc[qbm.index.dayofyear == doy, "bm_daily_mean_flow"] = bm_vals[bm_vals.index == doy].values
+        if doy in bm_vals.index: # takes care of cases where for some reason we have no cal data for this day
+            qbm.loc[qbm.index.dayofyear == doy, "bm_daily_mean_flow"] = bm_vals[bm_vals.index == doy].values
     return bm_vals, qbm
 
 
@@ -264,7 +267,8 @@ def bm_daily_median_flow(data, cal_mask, streamflow="streamflow"):
     bm_vals = cal_set.groupby(cal_set.index.dayofyear).median()
     qbm = pd.DataFrame({"bm_daily_median_flow": np.nan}, index=data.index)
     for doy in qbm.index.dayofyear.unique():
-        qbm.loc[qbm.index.dayofyear == doy, "bm_daily_median_flow"] = bm_vals[bm_vals.index == doy].values
+        if doy in bm_vals.index: # takes care of cases where for some reason we have no cal data for this day
+            qbm.loc[qbm.index.dayofyear == doy, "bm_daily_median_flow"] = bm_vals[bm_vals.index == doy].values
     return bm_vals, qbm
 
 
@@ -486,14 +490,13 @@ def monthly_rainfall_runoff_ratio_to_monthly(
     bm_vals = monthly_mean_q / monthly_mean_p  # (at most) 12 rainfall-runoff ratios
     qbm = pd.DataFrame({"bm_monthly_rainfall_runoff_ratio_to_monthly": np.nan}, index=data.index)
     for year in qbm.index.year.unique():  # for each year
-        for month in qbm.loc[
-            qbm.index.year == year
-        ].index.month.unique():  # for each month we have in the index for that year (takes care of mising months)
+        for month in qbm.loc[qbm.index.year == year].index.month.unique():  # for each month we have in the index for that year (takes care of mising months)
             this_month = (data.index.year == year) & (data.index.month == month)
             mean_monthly_precip = data[precipitation].loc[this_month].mean()
-            qbm.loc[this_month, "bm_monthly_rainfall_runoff_ratio_to_monthly"] = (
-                bm_vals.loc[month] * mean_monthly_precip
-            )
+            if month in bm_vals.index: # takes care of cases where for some reason we have no cal data for this month
+                qbm.loc[this_month, "bm_monthly_rainfall_runoff_ratio_to_monthly"] = (
+                    bm_vals.loc[month] * mean_monthly_precip
+                )
     return bm_vals, qbm
 
 
@@ -533,7 +536,8 @@ def monthly_rainfall_runoff_ratio_to_daily(data, cal_mask, precipitation="precip
             this_day = (data.index.year == year) & (data.index.dayofyear == doy)
             mean_daily_precip = data[precipitation].loc[this_day].mean()
             month = data[precipitation].loc[this_day].index.month[0]
-            qbm.loc[this_day, "bm_monthly_rainfall_runoff_ratio_to_daily"] = bm_vals.loc[month] * mean_daily_precip
+            if month in bm_vals.index: # takes care of cases where for some reason we have no cal data for this month
+                qbm.loc[this_day, "bm_monthly_rainfall_runoff_ratio_to_daily"] = bm_vals.loc[month] * mean_daily_precip
     return bm_vals, qbm
 
 
