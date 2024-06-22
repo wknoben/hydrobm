@@ -488,13 +488,13 @@ def monthly_rainfall_runoff_ratio_to_monthly(
     monthly_mean_q = cal_set[streamflow].groupby(cal_set.index.month).mean()
     monthly_mean_p = cal_set[precipitation].groupby(cal_set.index.month).mean()
     bm_vals = monthly_mean_q / monthly_mean_p  # (at most) 12 rainfall-runoff ratios
+    bm_vals = bm_vals.reindex(range(1, 13))  # fill missing months with NaN, does nothing if already 12
     qbm = pd.DataFrame({"bm_monthly_rainfall_runoff_ratio_to_monthly": np.nan}, index=data.index)
     for year in qbm.index.year.unique():  # for each year
         for month in qbm.loc[qbm.index.year == year].index.month.unique():  # for each month we have in the index for that year (takes care of mising months)
             this_month = (data.index.year == year) & (data.index.month == month)
             mean_monthly_precip = data[precipitation].loc[this_month].mean()
-            if month in bm_vals.index: # takes care of cases where for some reason we have no cal data for this month
-                qbm.loc[this_month, "bm_monthly_rainfall_runoff_ratio_to_monthly"] = (
+            qbm.loc[this_month, "bm_monthly_rainfall_runoff_ratio_to_monthly"] = (
                     bm_vals.loc[month] * mean_monthly_precip
                 )
     return bm_vals, qbm
@@ -528,6 +528,7 @@ def monthly_rainfall_runoff_ratio_to_daily(data, cal_mask, precipitation="precip
     monthly_mean_q = cal_set[streamflow].groupby(cal_set.index.month).mean()
     monthly_mean_p = cal_set[precipitation].groupby(cal_set.index.month).mean()
     bm_vals = monthly_mean_q / monthly_mean_p  # (at most) 12 rainfall-runoff ratios
+    bm_vals = bm_vals.reindex(range(1, 13))  # fill missing months with NaN, does nothing if already 12
     qbm = pd.DataFrame({"bm_monthly_rainfall_runoff_ratio_to_daily": np.nan}, index=data.index)
     for year in qbm.index.year.unique():  # for each year
         for doy in qbm.loc[
@@ -536,8 +537,7 @@ def monthly_rainfall_runoff_ratio_to_daily(data, cal_mask, precipitation="precip
             this_day = (data.index.year == year) & (data.index.dayofyear == doy)
             mean_daily_precip = data[precipitation].loc[this_day].mean()
             month = data[precipitation].loc[this_day].index.month[0]
-            if month in bm_vals.index: # takes care of cases where for some reason we have no cal data for this month
-                qbm.loc[this_day, "bm_monthly_rainfall_runoff_ratio_to_daily"] = bm_vals.loc[month] * mean_daily_precip
+            qbm.loc[this_day, "bm_monthly_rainfall_runoff_ratio_to_daily"] = bm_vals.loc[month] * mean_daily_precip
     return bm_vals, qbm
 
 
@@ -571,6 +571,7 @@ def monthly_rainfall_runoff_ratio_to_timestep(
     monthly_mean_q = cal_set[streamflow].groupby(cal_set.index.month).mean()
     monthly_mean_p = cal_set[precipitation].groupby(cal_set.index.month).mean()
     bm_vals = monthly_mean_q / monthly_mean_p  # (at most) 12 rainfall-runoff ratios
+    bm_vals = bm_vals.reindex(range(1, 13))  # fill missing months with NaN, does nothing if already 12
     qbm = pd.DataFrame(
         {
             "bm_monthly_rainfall_runoff_ratio_to_timestep": bm_vals.loc[data.index.month].values
