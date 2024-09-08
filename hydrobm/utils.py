@@ -340,12 +340,22 @@ def rain_to_melt(
     snow_and_melt_temp : float, optional
         Temperature threshold for snow accumulation and melt. Default is 0.0 [C].
     snow_and_melt_rate : float, optional
-        Snow melt rate if temperature above threshold. Default is 3.0 [mm/hour/degree C].
+        Snow melt rate if temperature above threshold. Default is 3.0 [mm/timestep/degree C].
 
     Returns
     -------
     data : pandas DataFrame
         Input data with additional columns for snow depth and rain plus melt.
+
+    Notes
+    -----
+    The default values for snow_and_melt_temp and snow_and_melt_rate are given in units of
+    degrees Celsius and millimeters per time step per degree Celsius, respectively. These
+    are not used in the code however, as the function is designed to work with any units.
+
+    For example, providing the input data in Kelvin and setting snow_and_melt_temp to 273.15
+    will work as expected. Similarly, if the input precipitation data is not in millimeters,
+    simply providing the snow_and_melt_rate in those same units will yield the correct output.
     """
 
     # Docs: 3 degrees C is a conservative estimate (see e.g.: https://tc.copernicus.org/articles/17/211/2023/)

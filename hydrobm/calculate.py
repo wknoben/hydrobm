@@ -33,7 +33,7 @@ def calc_bm(
     cal_mask : pandas Series
         Boolean mask for the calculation period.
     val_mask : pandas Series, optional
-        Boolean mask for the validation period. Default is [] (no evaluation scores returned).
+        Boolean mask for the validation period. Default is [] (no validation scores returned).
     precipitation : str, optional
         Name of the precipitation column in the input data. Default is 'precipitation'.
     streamflow : str, optional

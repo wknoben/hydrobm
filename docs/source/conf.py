@@ -43,6 +43,7 @@ extensions = [
     "matplotlib.sphinxext.plot_directive",
     "numpydoc",
     "sphinx_copybutton",
+    "myst_nb",
 ]
 
 # Configuration options for plot_directive. See:
@@ -67,7 +68,7 @@ source_suffix = ".rst"
 master_doc = "index"
 
 # General information about the project.
-project = "Benchmarks for Hydrologic Timeseries"
+project = "HydroBM"
 copyright = "2024, Wouter Knoben"
 author = "Wouter Knoben"
 
@@ -134,6 +135,10 @@ html_sidebars = {
     ]
 }
 
+# -- Options for notebook execution ---------------------------------------
+nb_execution_timeout = 600  # Seconds
+nb_execution_show_tb = True  # Show traceback if execution fails
+nb_execution_allow_errors = True  # Allow execution errors to show in the output instead of failing
 
 # -- Options for HTMLHelp output ------------------------------------------
 
