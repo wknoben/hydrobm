@@ -3,6 +3,8 @@
 This folder contains example data obtained from the Caravan data set (Kratzert et al., 2023), and a script that shows how to run the HydroBM package for this test case. To reduce repository size only the "total_precipitation_sum", "temperature_2m_mean", and "streamflow" variables are retained in `camels_01022500_minimal.nc`.
 
 ### Subsetting code
+To replciate the example from scratch, download the Caravan data set and use the code below to subset the data in `camels_01022500.nc` to what's being used in this example.
+
 ```
 import numpy as np
 import xarray as xr
