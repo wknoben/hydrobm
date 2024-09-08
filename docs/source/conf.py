@@ -138,7 +138,7 @@ html_sidebars = {
 # -- Options for notebook execution ---------------------------------------
 nb_execution_timeout = 600  # Seconds
 nb_execution_show_tb = True  # Show traceback if execution fails
-execution_allow_errors = True  # Allow execution errors to show in the output instead of failing
+nb_execution_allow_errors = True  # Allow execution errors to show in the output instead of failing
 
 # -- Options for HTMLHelp output ------------------------------------------
 
