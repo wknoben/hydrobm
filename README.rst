@@ -12,8 +12,8 @@ Benchmarks for Hydrologic Timeseries
 
 Python package for calculating simple benchmarks from hydroclimatic timeseries.
 
-* Free software: GNU General Public License v3
-* Documentation: (COMING SOON!) https://wknoben.github.io/hydrobm.
+* Free software: GNU General Public License v3.
+* Documentation: https://hydrobm.readthedocs.io/en/latest/.
 
 Features
 --------
