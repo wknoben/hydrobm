@@ -18,3 +18,8 @@ numpydoc
 sphinx-copybutton
 sphinx_rtd_theme
 myst_nb
+# Needed to run the example on the docs
+numpy
+pandas
+scipy
+xarray
