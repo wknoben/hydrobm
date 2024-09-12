@@ -21,7 +21,6 @@ myst_nb
 # Needed to run the example on the docs
 cftime
 numpy
-matplotlib
 pandas
 scipy
 xarray
