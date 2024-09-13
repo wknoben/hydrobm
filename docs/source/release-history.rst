@@ -2,7 +2,7 @@
 Release History
 ===============
 
-Initial Release (2024-09-08)
+Initial Release (2024-09-12)
 ----------------------------
 Released the package with core functionality:
 
