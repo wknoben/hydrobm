@@ -2,6 +2,13 @@
 Release History
 ===============
 
+v1.0.1 (2024-10-03)
+-------------------
+Bugfixes:
+
+- Fixed a bug that stopped benchmark evaluation with user-specified streamflow variable names.
+
+
 Initial Release (2024-09-12)
 ----------------------------
 Released the package with core functionality:
