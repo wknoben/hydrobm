@@ -31,7 +31,7 @@ def optimize_apb(scaled_precip, streamflow, method, max_lag=30):
     """
 
     # Check that the method is valid
-    if method not in ["brute_force", "minimize"]: # , "differential_evolution"]:
+    if method not in ["brute_force", "minimize"]:  # , "differential_evolution"]:
         raise ValueError(f"Invalid optimization method specified for optimize_lag: {method}.")
 
     # Brute force optimization
