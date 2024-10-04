@@ -120,7 +120,9 @@ def calc_bm(
         cal_scores = []
         val_scores = []
         for benchmark_flow in benchmark_flow_list:
-            [cal_score, val_score] = evaluate_bm(data, benchmark_flow, metric, cal_mask, val_mask)
+            [cal_score, val_score] = evaluate_bm(
+                data, benchmark_flow, metric, cal_mask, val_mask=val_mask, streamflow=streamflow
+            )
             cal_scores.append(cal_score)
             val_scores.append(val_score)
         results.update({metric + "_cal": cal_scores, metric + "_val": val_scores})
