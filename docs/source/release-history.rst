@@ -2,6 +2,13 @@
 Release History
 ===============
 
+v1.0.2 (2024-10-04)
+-------------------
+Changes:
+
+- Corrected license listed on pypi.org.
+
+
 v1.0.1 (2024-10-03)
 -------------------
 Bugfixes:
@@ -9,9 +16,9 @@ Bugfixes:
 - Fixed a bug that stopped benchmark evaluation with user-specified streamflow variable names.
 
 
-Initial Release (2024-09-12)
+v1.0.0 (2024-09-12)
 ----------------------------
-Released the package with core functionality:
+Initial release with core functionality:
 
 - Capability to work with pandas DataFrames (e.g., CSV data) and xarray DataSets (e.g., netCDF data).
 - Capability to create 19 benchmark timeseries for hydrologic models.
