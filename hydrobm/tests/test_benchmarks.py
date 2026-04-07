@@ -213,9 +213,9 @@ def test_rainfall_runoff_ratio_to_all():
     # Test 1 year with different P during year 2 to check predictive capability
     # T3a: should return 0.5 for the given sine curves
     # T3b: should return 1.0 for all timesteps in cal_mask
-    # T4b: should return 2.0 for all timesteps in ~cal_mask
+    # T3c: should return 2.0 for all timesteps in ~cal_mask
     cal_mask = data.index.year == 2001
-    data["precipitation"].loc[~cal_mask] = data["precipitation"].loc[~cal_mask] * 2
+    data.loc[~cal_mask, "precipitation"] = data.loc[~cal_mask, "precipitation"] * 2
     bm_v, bm_t = create_bm(data, "rainfall_runoff_ratio_to_all", cal_mask)
     assert np.isclose(bm_v, 0.5), "Failed rainfall-runoff ratio T3a."
     assert (
@@ -253,11 +253,11 @@ def test_rainfall_runoff_ratio_to_annual():
     # Test 1 year with different P during year 2 to check predictive capability
     # T3a: should return 0.5 for the given sine curves
     # T3b: should return 1.0 for all timesteps in cal_mask
-    # T4b: should return 2.0 for all timesteps in year 2002
-    # T4b: should return 3.0 for all timesteps in year 2003
+    # T3c: should return 2.0 for all timesteps in year 2002
+    # T3d: should return 3.0 for all timesteps in year 2003
     cal_mask = data.index.year == 2001
-    data["precipitation"].loc[data.index.year == 2002] = data["precipitation"].loc[data.index.year == 2002] * 2
-    data["precipitation"].loc[data.index.year == 2003] = data["precipitation"].loc[data.index.year == 2003] * 3
+    data.loc[data.index.year == 2002, "precipitation"] = data.loc[data.index.year == 2002, "precipitation"] * 2
+    data.loc[data.index.year == 2003, "precipitation"] = data.loc[data.index.year == 2003, "precipitation"] * 3
     bm_v, bm_t = create_bm(data, "rainfall_runoff_ratio_to_annual", cal_mask)
     assert np.isclose(bm_v, 0.5), "Failed rainfall-runoff ratio to annual T3a."
     assert (
@@ -287,8 +287,8 @@ def test_rainfall_runoff_ratio_to_monthly():
     # Test 2: increase precipitation for years 2 and 3, should result in 36 unique values
     data = create_sines(period=3)
     cal_mask = data.index.year == 2001
-    data["precipitation"].loc[data.index.year == 2002] = data["precipitation"].loc[data.index.year == 2002] * 2
-    data["precipitation"].loc[data.index.year == 2003] = data["precipitation"].loc[data.index.year == 2003] * 3
+    data.loc[data.index.year == 2002, "precipitation"] = data.loc[data.index.year == 2002, "precipitation"] * 2
+    data.loc[data.index.year == 2003, "precipitation"] = data.loc[data.index.year == 2003, "precipitation"] * 3
     bm_v, bm_t = create_bm(data, "rainfall_runoff_ratio_to_monthly", cal_mask)
     assert (
         len(bm_t["bm_rainfall_runoff_ratio_to_monthly"].unique()) == 36
@@ -314,8 +314,8 @@ def test_rainfall_runoff_ratio_to_daily():
     # Test 2: increase precipitation for years 2 and 3, should result in 1095 unique values
     data = create_sines(period=3)
     cal_mask = data.index.year == 2001
-    data["precipitation"].loc[data.index.year == 2002] = data["precipitation"].loc[data.index.year == 2002] * 2
-    data["precipitation"].loc[data.index.year == 2003] = data["precipitation"].loc[data.index.year == 2003] * 3
+    data.loc[data.index.year == 2002, "precipitation"] = data.loc[data.index.year == 2002, "precipitation"] * 2
+    data.loc[data.index.year == 2003, "precipitation"] = data.loc[data.index.year == 2003, "precipitation"] * 3
     bm_v, bm_t = create_bm(data, "rainfall_runoff_ratio_to_daily", cal_mask)
     assert (
         len(bm_t["bm_rainfall_runoff_ratio_to_daily"].unique()) == 1095
