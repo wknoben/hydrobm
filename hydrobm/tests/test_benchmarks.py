@@ -355,8 +355,8 @@ def test_monthly_rainfall_runoff_ratio_to_monthly():
     # as well as 3 unique values per month (one for each year)
     data = create_sines(period=3)
     cal_mask = data.index.year == 2001
-    data["precipitation"].loc[data.index.year == 2002] = data["precipitation"].loc[data.index.year == 2002] * 2
-    data["precipitation"].loc[data.index.year == 2003] = data["precipitation"].loc[data.index.year == 2003] * 3
+    data.loc[data.index.year == 2002, "precipitation"] = data.loc[data.index.year == 2002, "precipitation"] * 2
+    data.loc[data.index.year == 2003, "precipitation"] = data.loc[data.index.year == 2003, "precipitation"] * 3
     bm_v, bm_t = create_bm(data, "monthly_rainfall_runoff_ratio_to_monthly", cal_mask)
     assert len(bm_v) == 12, "Failed monthly rainfall-runoff ratio to monthly T2a."
     assert (
@@ -398,8 +398,8 @@ def test_monthly_rainfall_runoff_ratio_to_daily():
     # as well as 3 unique values per month (one for each year)
     data = create_sines(period=3)
     cal_mask = data.index.year == 2001
-    data["precipitation"].loc[data.index.year == 2002] = data["precipitation"].loc[data.index.year == 2002] * 2
-    data["precipitation"].loc[data.index.year == 2003] = data["precipitation"].loc[data.index.year == 2003] * 3
+    data.loc[data.index.year == 2002, "precipitation"] = data.loc[data.index.year == 2002, "precipitation"] * 2
+    data.loc[data.index.year == 2003, "precipitation"] = data.loc[data.index.year == 2003, "precipitation"] * 3
     bm_v, bm_t = create_bm(data, "monthly_rainfall_runoff_ratio_to_daily", cal_mask)
     assert len(bm_v) == 12, "Failed monthly rainfall-runoff ratio to daily T2a."
     assert (
