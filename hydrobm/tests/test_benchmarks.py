@@ -58,7 +58,7 @@ def test_annual_mean_flow():
     data.loc[year2_mask, "streamflow"] *= 2
 
     # T1: should return all mean_q values for year 1, and mean_q * 2 values for year 2
-    cal_mask = data.index  # all data
+    cal_mask = pd.Series(True, index=data.index)  # all data
     bm_v, bm_t = create_bm(data, "annual_mean_flow", cal_mask)
     assert (bm_v == [mean_q, 2 * mean_q]).all(), "Failed annual mean flow T1a."
     assert (bm_t[bm_t.index.year == 2001]["bm_annual_mean_flow"] == mean_q).all(), "Failed annual mean flow T1b."
