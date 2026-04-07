@@ -11,7 +11,7 @@ def create_sines(period=2, mean_p=2, mean_q=1, var_p=1, var_q=1, offset_p=0, off
     hour_per_year = 365 * 24  # 365 days/year * 24 hours/day
     n_steps = period * hour_per_year
     dates = pd.date_range(
-        "2001-01-01", periods=n_steps, freq="H"
+        "2001-01-01", periods=n_steps, freq="h"
     )  # Start in 2001 so we avoid the leap year in 2000
     # Sine curve parameters
     data_p = mean_p + var_p * np.sin((np.arange(n_steps) - offset_p) / hour_per_year * (2 * np.pi))
@@ -459,7 +459,7 @@ def test_annual_scaled_daily_mean_flow():
     data = create_sines(period=6, mean_p=2, mean_q=1, var_p=1, var_q=1, offset_p=1000, offset_q=0)
 
     # Add December 2000 (incomplete year) at the beginning
-    dec_2000_dates = pd.date_range("2000-12-01", "2000-12-31", freq="H")
+    dec_2000_dates = pd.date_range("2000-12-01", "2000-12-31", freq="h")
     dec_2000_data = pd.DataFrame(
         {
             "precipitation": np.random.uniform(1, 3, len(dec_2000_dates)),
