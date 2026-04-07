@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import Bounds, minimize, minimize_scalar  # differential_evolution,
 
-from .metrics import mse
+from .metrics import kge, mse
 
 # --- Wrapper functions for adjusted precipitation benchmark
 # and adjusted smoothed precipitation benchmark optimization
@@ -566,3 +566,114 @@ def rain_to_melt(
     data["rain_plus_melt"] = rain_plus_melt
 
     return data
+
+
+# --- BME calculation functions
+
+
+def bme_nse(q_obs, q_sim, q_bm, cal_mask, val_mask=None):
+    """Calculate NSE-based Benchmark Efficiency (BME) for cal and val periods. The formulation
+    can be found in Seibert (2001) and Schaefli and Gupta (2007).
+
+    BME = 1 - sum((q_obs - q_sim)^2) / sum((q_obs - q_bm)^2)
+
+    Parameters
+    ----------
+    q_obs : pandas Series
+        Observed streamflow.
+    q_sim : pandas Series
+        Simulated streamflow.
+    q_bm : pandas Series
+        Benchmark streamflow.
+    cal_mask : pandas Series
+        Boolean mask for the calibration period.
+    val_mask : pandas Series, optional
+        Boolean mask for the validation period. Default is None (no val score returned).
+
+    Returns
+    -------
+    cal_score : float
+        NSE-based BME score for the calibration period.
+    val_score : float
+        NSE-based BME score for the validation period. NaN if no val_mask specified.
+
+
+    References
+    ----------
+    Seibert, J. (2001). On the need for benchmarks in hydrological modelling.
+    Hydrological Processes, 15(6), 1063–1064. https://doi.org/10.1002/hyp.446
+
+    Schaefli, B., & Gupta, H. V. (2007). Do Nash values have value?
+    Hydrological Processes, 21(15), 2075–2080. https://doi.org/10.1002/hyp.6825
+
+
+    """
+
+    def _nse_bme_score(mask):
+        obs = q_obs[mask].values
+        sim = q_sim[mask].values
+        bm = q_bm[mask].values
+
+        # filter nan for 3 arrays
+        if np.all(np.isnan(obs)) or np.all(np.isnan(sim)) or np.all(np.isnan(bm)):
+            return np.nan
+        nan_mask = ~np.isnan(obs) & ~np.isnan(sim) & ~np.isnan(bm)
+        obs, sim, bm = obs[nan_mask], sim[nan_mask], bm[nan_mask]
+
+        denominator = np.sum((obs - bm) ** 2)
+        if denominator == 0:
+            return np.nan
+        return 1 - np.sum((obs - sim) ** 2) / denominator
+
+    cal_score = _nse_bme_score(cal_mask)
+    val_score = _nse_bme_score(val_mask) if val_mask is not None else np.nan
+    return cal_score, val_score
+
+
+def bme_kge(q_obs, q_sim, q_bm, cal_mask, val_mask=None):
+    """Calculate KGE-based Benchmark Model Efficiency (KGE skill score) for cal and val periods.
+    This skill score formulation can be found in Knoben et al. (2019) among others.
+
+    KGE_skill = (KGE_model - KGE_benchmark) / (1 - KGE_benchmark)
+
+    Parameters
+    ----------
+    q_obs : pandas Series
+        Observed streamflow.
+    q_sim : pandas Series
+        Simulated streamflow.
+    q_bm : pandas Series
+        Benchmark streamflow.
+    cal_mask : pandas Series
+        Boolean mask for the calibration period.
+    val_mask : pandas Series, optional
+        Boolean mask for the validation period. Default is None (no val score returned).
+
+    Returns
+    -------
+    cal_score : float
+        KGE skill score for the calibration period.
+    val_score : float
+        KGE skill score for the validation period. NaN if no val_mask specified.
+
+    References
+    ----------
+    Knoben, W. J. M., Freer, J. E., & Woods, R. A. (2019). Technical note: Inherent benchmark or not? Comparing
+    Nash–Sutcliffe and Kling–Gupta efficiency scores. Hydrology and Earth System Sciences, 23(10), 4323–4331.
+    https://doi.org/10.5194/hess-23-4323-2019
+
+    """
+
+    def _bme_kge_score(mask):
+        obs = q_obs[mask].values
+        sim = q_sim[mask].values
+        bm = q_bm[mask].values
+        kge_model = kge(obs, sim)
+        kge_benchmark = kge(obs, bm)
+        if np.isclose(kge_benchmark, 1.0):
+            return np.nan
+        return (kge_model - kge_benchmark) / (1 - kge_benchmark)
+
+    cal_score = _bme_kge_score(cal_mask)
+    val_score = _bme_kge_score(val_mask) if val_mask is not None else np.nan
+    return cal_score, val_score

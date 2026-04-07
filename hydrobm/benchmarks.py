@@ -458,7 +458,7 @@ def bm_rainfall_runoff_ratio_to_timestep(data, cal_mask, precipitation="precipit
     return bm_vals, qbm
 
 
-def monthly_rainfall_runoff_ratio_to_monthly(
+def bm_monthly_rainfall_runoff_ratio_to_monthly(
     data, cal_mask, precipitation="precipitation", streamflow="streamflow"
 ):
     """Calculate the mean monthly rainfall-runoff ratio over the calculation period and
@@ -505,7 +505,9 @@ def monthly_rainfall_runoff_ratio_to_monthly(
     return bm_vals, qbm
 
 
-def monthly_rainfall_runoff_ratio_to_daily(data, cal_mask, precipitation="precipitation", streamflow="streamflow"):
+def bm_monthly_rainfall_runoff_ratio_to_daily(
+    data, cal_mask, precipitation="precipitation", streamflow="streamflow"
+):
     """Calculate the mean monthly rainfall-runoff ratio over the calculation period and
     use that as a predictor of runoff-from-precipitation for each day in the whole dataframe.
 
@@ -549,7 +551,7 @@ def monthly_rainfall_runoff_ratio_to_daily(data, cal_mask, precipitation="precip
     return bm_vals, qbm
 
 
-def monthly_rainfall_runoff_ratio_to_timestep(
+def bm_monthly_rainfall_runoff_ratio_to_timestep(
     data, cal_mask, precipitation="precipitation", streamflow="streamflow"
 ):
     """Calculate the mean monthly rainfall-runoff ratio over the calculation period and
@@ -594,7 +596,7 @@ def monthly_rainfall_runoff_ratio_to_timestep(
     return bm_vals, qbm
 
 
-def scaled_precipitation_benchmark(data, cal_mask, precipitation="precipitation", streamflow="streamflow"):
+def bm_scaled_precipitation_benchmark(data, cal_mask, precipitation="precipitation", streamflow="streamflow"):
     """Calculate the scaled precipitation benchmark model as a predictor
     of runoff-from-precipitation for each timestep in the whole dataframe.
 
@@ -742,13 +744,11 @@ def bm_monthly_scaled_daily_mean_flow(data, cal_mask, precipitation="precipitati
     Notes
     -----
     The benchmark works as follows:
-    1. Calculate daily mean flow climatology from calibration period
-    2. Calculate mean TOTAL monthly precipitation for each calendar month during calibration period
-    3. For each month in the dataset:
-       - Calculate total precipitation for that month
-       - Compute scaling factor = month_precip / mean_total_monthly_precip_cal[month]
-       - Scale the daily mean flow pattern by this factor for all days in that month
-    4. For months with zero calibration precipitation, scaling factor is set to 1.0
+    1. Calculate daily mean flow climatology from calibration period.
+    2. Calculate mean total monthly precipitation for each calendar month during calibration period.
+    3. For each month in the dataset, calculate total precipitation, compute scaling factor as
+    month_precip / mean_total_monthly_precip_cal[month], and scale the daily mean flow pattern by this factor.
+    4. For months with zero calibration precipitation, scaling factor is set to 1.0.
     """
 
     # Step 1: Get the daily mean flow climatology from calibration period
@@ -881,7 +881,7 @@ def bm_eckhardt_baseflow(
     return bm_vals, qbm
 
 
-def adjusted_precipitation_benchmark(
+def bm_adjusted_precipitation_benchmark(
     data, cal_mask, precipitation="precipitation", streamflow="streamflow", optimization_method="brute_force"
 ):
     """Calculate the adjusted precipitation benchmark model as a predictor
@@ -938,7 +938,7 @@ def adjusted_precipitation_benchmark(
     return bm_vals, qbm
 
 
-def adjusted_smoothed_precipitation_benchmark(
+def bm_adjusted_smoothed_precipitation_benchmark(
     data, cal_mask, precipitation="precipitation", streamflow="streamflow", optimization_method="brute_force"
 ):
     """Calculate the adjusted smoothed precipitation benchmark model as a predictor
@@ -1185,17 +1185,17 @@ def create_bm(
         )
 
     elif benchmark == "monthly_rainfall_runoff_ratio_to_monthly":
-        bm_vals, qbm = monthly_rainfall_runoff_ratio_to_monthly(
+        bm_vals, qbm = bm_monthly_rainfall_runoff_ratio_to_monthly(
             data, cal_mask, precipitation=precipitation, streamflow=streamflow
         )
 
     elif benchmark == "monthly_rainfall_runoff_ratio_to_daily":
-        bm_vals, qbm = monthly_rainfall_runoff_ratio_to_daily(
+        bm_vals, qbm = bm_monthly_rainfall_runoff_ratio_to_daily(
             data, cal_mask, precipitation=precipitation, streamflow=streamflow
         )
 
     elif benchmark == "monthly_rainfall_runoff_ratio_to_timestep":
-        bm_vals, qbm = monthly_rainfall_runoff_ratio_to_timestep(
+        bm_vals, qbm = bm_monthly_rainfall_runoff_ratio_to_timestep(
             data, cal_mask, precipitation=precipitation, streamflow=streamflow
         )
 
@@ -1217,12 +1217,12 @@ def create_bm(
     # --- Schaefli & Gupta (2007) benchmarks
 
     elif benchmark == "scaled_precipitation_benchmark":
-        bm_vals, qbm = scaled_precipitation_benchmark(
+        bm_vals, qbm = bm_scaled_precipitation_benchmark(
             data, cal_mask, precipitation=precipitation, streamflow=streamflow
         )
 
     elif benchmark == "adjusted_precipitation_benchmark":
-        bm_vals, qbm = adjusted_precipitation_benchmark(
+        bm_vals, qbm = bm_adjusted_precipitation_benchmark(
             data,
             cal_mask,
             precipitation=precipitation,
@@ -1231,7 +1231,7 @@ def create_bm(
         )
 
     elif benchmark == "adjusted_smoothed_precipitation_benchmark":
-        bm_vals, qbm = adjusted_smoothed_precipitation_benchmark(
+        bm_vals, qbm = bm_adjusted_smoothed_precipitation_benchmark(
             data,
             cal_mask,
             precipitation=precipitation,
