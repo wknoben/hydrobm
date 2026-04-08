@@ -8,7 +8,7 @@ Welcome to HydroBM's documentation!
 
 HydroBM is a shorthand for "Hydrologic Timeseries Benchmarks".
 HydroBM is a Python package that provides a simple framework to create benchmark timeseries for hydrologic models.
-Details about this benchmarking approach can be found in Knoben (2024).
+Details about this benchmarking approach can be found in `Knoben (2024) <knoben-2024_>`_.
 
 Extra features:
 
@@ -29,4 +29,5 @@ Contents:
 
 References
 -------------------------
+.. _knoben-2024:
 Knoben, W. J. M. (2024). Setting expectations for hydrologic model performance with an ensemble of simple benchmarks. Hydrological Processes, 38(10), e15288. https://doi.org/10.1002/hyp.15288
