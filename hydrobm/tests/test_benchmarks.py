@@ -11,7 +11,7 @@ def create_sines(period=2, mean_p=2, mean_q=1, var_p=1, var_q=1, offset_p=0, off
     hour_per_year = 365 * 24  # 365 days/year * 24 hours/day
     n_steps = period * hour_per_year
     dates = pd.date_range(
-        "2001-01-01", periods=n_steps, freq="H"
+        "2001-01-01", periods=n_steps, freq="h"
     )  # Start in 2001 so we avoid the leap year in 2000
     # Sine curve parameters
     data_p = mean_p + var_p * np.sin((np.arange(n_steps) - offset_p) / hour_per_year * (2 * np.pi))
@@ -58,7 +58,7 @@ def test_annual_mean_flow():
     data.loc[year2_mask, "streamflow"] *= 2
 
     # T1: should return all mean_q values for year 1, and mean_q * 2 values for year 2
-    cal_mask = data.index  # all data
+    cal_mask = pd.Series(True, index=data.index)  # all data
     bm_v, bm_t = create_bm(data, "annual_mean_flow", cal_mask)
     assert (bm_v == [mean_q, 2 * mean_q]).all(), "Failed annual mean flow T1a."
     assert (bm_t[bm_t.index.year == 2001]["bm_annual_mean_flow"] == mean_q).all(), "Failed annual mean flow T1b."
@@ -213,9 +213,9 @@ def test_rainfall_runoff_ratio_to_all():
     # Test 1 year with different P during year 2 to check predictive capability
     # T3a: should return 0.5 for the given sine curves
     # T3b: should return 1.0 for all timesteps in cal_mask
-    # T4b: should return 2.0 for all timesteps in ~cal_mask
+    # T3c: should return 2.0 for all timesteps in ~cal_mask
     cal_mask = data.index.year == 2001
-    data["precipitation"].loc[~cal_mask] = data["precipitation"].loc[~cal_mask] * 2
+    data.loc[~cal_mask, "precipitation"] = data.loc[~cal_mask, "precipitation"] * 2
     bm_v, bm_t = create_bm(data, "rainfall_runoff_ratio_to_all", cal_mask)
     assert np.isclose(bm_v, 0.5), "Failed rainfall-runoff ratio T3a."
     assert (
@@ -253,11 +253,11 @@ def test_rainfall_runoff_ratio_to_annual():
     # Test 1 year with different P during year 2 to check predictive capability
     # T3a: should return 0.5 for the given sine curves
     # T3b: should return 1.0 for all timesteps in cal_mask
-    # T4b: should return 2.0 for all timesteps in year 2002
-    # T4b: should return 3.0 for all timesteps in year 2003
+    # T3c: should return 2.0 for all timesteps in year 2002
+    # T3d: should return 3.0 for all timesteps in year 2003
     cal_mask = data.index.year == 2001
-    data["precipitation"].loc[data.index.year == 2002] = data["precipitation"].loc[data.index.year == 2002] * 2
-    data["precipitation"].loc[data.index.year == 2003] = data["precipitation"].loc[data.index.year == 2003] * 3
+    data.loc[data.index.year == 2002, "precipitation"] = data.loc[data.index.year == 2002, "precipitation"] * 2
+    data.loc[data.index.year == 2003, "precipitation"] = data.loc[data.index.year == 2003, "precipitation"] * 3
     bm_v, bm_t = create_bm(data, "rainfall_runoff_ratio_to_annual", cal_mask)
     assert np.isclose(bm_v, 0.5), "Failed rainfall-runoff ratio to annual T3a."
     assert (
@@ -287,8 +287,8 @@ def test_rainfall_runoff_ratio_to_monthly():
     # Test 2: increase precipitation for years 2 and 3, should result in 36 unique values
     data = create_sines(period=3)
     cal_mask = data.index.year == 2001
-    data["precipitation"].loc[data.index.year == 2002] = data["precipitation"].loc[data.index.year == 2002] * 2
-    data["precipitation"].loc[data.index.year == 2003] = data["precipitation"].loc[data.index.year == 2003] * 3
+    data.loc[data.index.year == 2002, "precipitation"] = data.loc[data.index.year == 2002, "precipitation"] * 2
+    data.loc[data.index.year == 2003, "precipitation"] = data.loc[data.index.year == 2003, "precipitation"] * 3
     bm_v, bm_t = create_bm(data, "rainfall_runoff_ratio_to_monthly", cal_mask)
     assert (
         len(bm_t["bm_rainfall_runoff_ratio_to_monthly"].unique()) == 36
@@ -314,8 +314,8 @@ def test_rainfall_runoff_ratio_to_daily():
     # Test 2: increase precipitation for years 2 and 3, should result in 1095 unique values
     data = create_sines(period=3)
     cal_mask = data.index.year == 2001
-    data["precipitation"].loc[data.index.year == 2002] = data["precipitation"].loc[data.index.year == 2002] * 2
-    data["precipitation"].loc[data.index.year == 2003] = data["precipitation"].loc[data.index.year == 2003] * 3
+    data.loc[data.index.year == 2002, "precipitation"] = data.loc[data.index.year == 2002, "precipitation"] * 2
+    data.loc[data.index.year == 2003, "precipitation"] = data.loc[data.index.year == 2003, "precipitation"] * 3
     bm_v, bm_t = create_bm(data, "rainfall_runoff_ratio_to_daily", cal_mask)
     assert (
         len(bm_t["bm_rainfall_runoff_ratio_to_daily"].unique()) == 1095
@@ -355,8 +355,8 @@ def test_monthly_rainfall_runoff_ratio_to_monthly():
     # as well as 3 unique values per month (one for each year)
     data = create_sines(period=3)
     cal_mask = data.index.year == 2001
-    data["precipitation"].loc[data.index.year == 2002] = data["precipitation"].loc[data.index.year == 2002] * 2
-    data["precipitation"].loc[data.index.year == 2003] = data["precipitation"].loc[data.index.year == 2003] * 3
+    data.loc[data.index.year == 2002, "precipitation"] = data.loc[data.index.year == 2002, "precipitation"] * 2
+    data.loc[data.index.year == 2003, "precipitation"] = data.loc[data.index.year == 2003, "precipitation"] * 3
     bm_v, bm_t = create_bm(data, "monthly_rainfall_runoff_ratio_to_monthly", cal_mask)
     assert len(bm_v) == 12, "Failed monthly rainfall-runoff ratio to monthly T2a."
     assert (
@@ -398,8 +398,8 @@ def test_monthly_rainfall_runoff_ratio_to_daily():
     # as well as 3 unique values per month (one for each year)
     data = create_sines(period=3)
     cal_mask = data.index.year == 2001
-    data["precipitation"].loc[data.index.year == 2002] = data["precipitation"].loc[data.index.year == 2002] * 2
-    data["precipitation"].loc[data.index.year == 2003] = data["precipitation"].loc[data.index.year == 2003] * 3
+    data.loc[data.index.year == 2002, "precipitation"] = data.loc[data.index.year == 2002, "precipitation"] * 2
+    data.loc[data.index.year == 2003, "precipitation"] = data.loc[data.index.year == 2003, "precipitation"] * 3
     bm_v, bm_t = create_bm(data, "monthly_rainfall_runoff_ratio_to_daily", cal_mask)
     assert len(bm_v) == 12, "Failed monthly rainfall-runoff ratio to daily T2a."
     assert (
@@ -459,7 +459,7 @@ def test_annual_scaled_daily_mean_flow():
     data = create_sines(period=6, mean_p=2, mean_q=1, var_p=1, var_q=1, offset_p=1000, offset_q=0)
 
     # Add December 2000 (incomplete year) at the beginning
-    dec_2000_dates = pd.date_range("2000-12-01", "2000-12-31", freq="H")
+    dec_2000_dates = pd.date_range("2000-12-01", "2000-12-31", freq="h")
     dec_2000_data = pd.DataFrame(
         {
             "precipitation": np.random.uniform(1, 3, len(dec_2000_dates)),

@@ -21,6 +21,6 @@ myst_nb
 # Needed to run the example on the docs
 cftime
 numpy
-pandas
+pandas<4 # needed for breaking change to pd.date_range() -- freq="H" deprecated in >3
 scipy
 xarray

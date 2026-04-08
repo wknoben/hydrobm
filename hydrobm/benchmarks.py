@@ -91,13 +91,13 @@ def bm_annual_mean_flow(data, cal_mask, streamflow="streamflow"):
     Notes
     -----
     This benchmark cannot be used to predict unseen data, because the
-    years don't repeat. This function will return a ebnchmark time series
+    years don't repeat. This function will return a benchmark time series
     that has the same length as the input data, but only the calculation
     period will have values. The rest will be NaNs.
     """
+
     cal_set = data[streamflow].loc[cal_mask]
     bm_vals = cal_set.groupby(cal_set.index.year).mean()  # Returns one value per year
-
     # Initialize an empty dataframe for the full time series, even if we can only
     # calculate this particular benchmark for the calculation period. That way we
     # can at least guarantee that the output has the right shape. Evaluation period
@@ -105,6 +105,9 @@ def bm_annual_mean_flow(data, cal_mask, streamflow="streamflow"):
     qbm = pd.DataFrame({"bm_annual_mean_flow": np.nan}, index=data.index)
     for year in bm_vals.index:
         qbm.loc[qbm.index.year == year, "bm_annual_mean_flow"] = bm_vals[bm_vals.index == year].values
+    # Reset the non-calibration data to NaN for cases when the calibration window
+    # does not cover the full calendar year
+    qbm.loc[~cal_mask] = np.nan
     return bm_vals, qbm
 
 
@@ -131,14 +134,13 @@ def bm_annual_median_flow(data, cal_mask, streamflow="streamflow"):
     Notes
     -----
     This benchmark cannot be used to predict unseen data, because the
-    years don't repeat. This function will return a ebnchmark time series
+    years don't repeat. This function will return a benchmark time series
     that has the same length as the input data, but only the calculation
     period will have values. The rest will be NaNs.
     """
 
     cal_set = data[streamflow].loc[cal_mask]
     bm_vals = cal_set.groupby(cal_set.index.year).median()
-
     # Initialize an empty dataframe for the full time series, even if we can only
     # calculate this particular benchmark for the calculation period. That way we
     # can at least guarantee that the output has the right shape. Evaluation period
@@ -146,6 +148,9 @@ def bm_annual_median_flow(data, cal_mask, streamflow="streamflow"):
     qbm = pd.DataFrame({"bm_annual_median_flow": np.nan}, index=data.index)
     for year in bm_vals.index:
         qbm.loc[qbm.index.year == year, "bm_annual_median_flow"] = bm_vals[bm_vals.index == year].values
+    # Reset the non-calibration data to NaN for cases when the calibration window
+    # does not cover the full calendar year
+    qbm.loc[~cal_mask] = np.nan
     return bm_vals, qbm
 
 
